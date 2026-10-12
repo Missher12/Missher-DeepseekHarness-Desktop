@@ -36,7 +36,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Check Intel packaging boundaries
-        run: pnpm exec vitest run apps/desktop/tests/community-package.spec.ts apps/desktop/tests/package-target.spec.ts apps/desktop/tests/desktop-package-environment.spec.ts apps/desktop/tests/macos-signature.spec.ts --maxWorkers=2
+        run: pnpm exec vitest run apps/desktop/tests/community-package.spec.ts apps/desktop/tests/package-target.spec.ts apps/desktop/tests/desktop-package-environment.spec.ts apps/desktop/tests/macos-signature.spec.ts apps/desktop/tests/community-shell-documents.spec.ts apps/desktop/tests/community-shell-readiness.spec.ts apps/desktop/tests/community-shell-raster.spec.ts --maxWorkers=2
+      - name: Check macOS Documents isolation
+        run: node apps/desktop/scripts/preflight-macos-documents.mjs desktop-verification
       - name: Build isolated community Intel DMG
         run: |
           cp apps/desktop/.env.community-macos.example apps/desktop/.env.macos
@@ -45,8 +47,9 @@ jobs:
         run: |
           artifacts=apps/desktop/.desktop-build/targets/mac-x64/unsigned-artifacts
           hdiutil verify "$artifacts/deepseek-harness-$DSH_REQUESTED_BUILD_VERSION-mac-x64-unsigned.dmg"
-          node apps/desktop/scripts/smoke-community-shell.mjs "$artifacts/mac/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness" desktop-verification
+          mkdir -p desktop-verification
           shasum -a 256 "$artifacts/"*.dmg > desktop-verification/SHA256SUMS
+          node apps/desktop/scripts/smoke-community-shell.mjs "$artifacts/mac/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness" desktop-verification
       - name: Preserve installers and verification
         if: success()
         uses: actions/upload-artifact@v4
@@ -63,4 +66,5 @@ jobs:
           name: missher-mac-x64-diagnostics
           path: |
             apps/desktop/.desktop-build/packaging-runs/
+            apps/desktop/.desktop-build/targets/mac-x64/unsigned-artifacts/*.dmg
             desktop-verification/

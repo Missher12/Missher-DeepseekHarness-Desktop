@@ -7,6 +7,7 @@ import { join, resolve } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { isDesktopUiReady, FAILURE_TEXT } from './community-shell-readiness.mjs'
 import { inspectDesktopScreenshot } from './community-shell-raster.mjs'
+import { documentsIsolation, isolatedProfileEnv, macosDocumentsDirectory } from './community-shell-documents.mjs'
 
 if (!['linux', 'win32', 'darwin'].includes(process.platform)) throw new Error('Shell smoke requires Linux, Windows or macOS')
 const windows = process.platform === 'win32'
@@ -16,32 +17,51 @@ const executableStat = await stat(executable)
 if (!executableStat.isFile() || (!windows && !(executableStat.mode & 0o111))) throw new Error('Desktop executable must be an executable file')
 await mkdir(output, { recursive: true })
 const root = await mkdtemp(join(tmpdir(), 'missher-desktop-smoke-'))
-const diagnostic = join(root, 'fatal.txt')
+// One shared profile environment, so the preflight and this smoke ask the
+// Documents question exactly as the launched Desktop process does.
+const childEnv = isolatedProfileEnv(root)
+const diagnostic = childEnv.DSH_DESKTOP_DIAGNOSTIC_FILE
 // A fresh XDG_CONFIG_HOME has no user-dirs.dirs, so `xdg-user-dir DOCUMENTS`
 // falls back to $HOME, which the Host rejects as an unavailable Documents
 // directory and first-use default Workspace creation then fails. Reproduce a
 // normal desktop profile by declaring an isolated Documents directory, then
 // verify the Host really created the default Workspace under it.
 let defaultWorkspaceDir
-if (process.platform === 'linux') {
-  await mkdir(join(root, 'config'), { recursive: true })
-  const documents = join(root, 'documents')
-  await mkdir(documents, { recursive: true })
-  await writeFile(join(root, 'config', 'user-dirs.dirs'), `XDG_DOCUMENTS_DIR="${documents}"\n`)
-  defaultWorkspaceDir = join(documents, 'deepseek-harness', 'default-workspace')
-} else if (process.platform === 'darwin') {
-  defaultWorkspaceDir = join(root, 'Documents', 'deepseek-harness', 'default-workspace')
+let documentsIsolationVerdict = null
+try {
+  if (process.platform === 'linux') {
+    await mkdir(join(root, 'config'), { recursive: true })
+    const documents = join(root, 'documents')
+    await mkdir(documents, { recursive: true })
+    await writeFile(join(root, 'config', 'user-dirs.dirs'), `XDG_DOCUMENTS_DIR="${documents}"\n`)
+    defaultWorkspaceDir = join(documents, 'deepseek-harness', 'default-workspace')
+  } else if (process.platform === 'darwin') {
+    // The Host resolves Documents by asking `osascript`, so ask the same question
+    // with the same isolated environment (HOME and CFFIXED_USER_HOME) and require
+    // the answer inside the isolated root: an account Documents directory would
+    // create the Workspace outside the profile.
+    await mkdir(join(root, 'Documents'), { recursive: true })
+    const documents = macosDocumentsDirectory(childEnv)
+    documentsIsolationVerdict = documentsIsolation(documents, root)
+    if (!documentsIsolationVerdict.isolated) {
+      throw new Error(`macOS Documents lookup left the isolated profile: '${documents}' does not resolve inside '${root}'`)
+    }
+    defaultWorkspaceDir = join(documents, 'deepseek-harness', 'default-workspace')
+  }
+} catch (error) {
+  // Preparation failed before any application process existed: no child to stop,
+  // and only the temporary profile root this script created is removed. The
+  // diagnostic stays in the caller's output directory, outside that root.
+  if (process.platform === 'darwin') {
+    await writeFile(join(output, 'documents-lookup.json'), JSON.stringify({ ...(documentsIsolationVerdict ?? {}), error: error.message }, null, 2) + '\n')
+  }
+  await rm(root, { recursive: true, force: true })
+  throw error
 }
 async function workspaceOnDisk() {
   if (defaultWorkspaceDir === undefined) return true
   try { return (await stat(defaultWorkspaceDir)).isDirectory() } catch { return false }
 }
-// The Host may run Node itself through ELECTRON_RUN_AS_NODE; the packaged
-// Electron GUI must not inherit that switch or it rejects Chromium flags.
-const childEnv = { ...process.env, ...(process.platform === 'darwin' ? { HOME: root } : {}), XDG_CONFIG_HOME: join(root, 'config'), XDG_CACHE_HOME: join(root, 'cache'),
-  ...(windows ? { APPDATA: join(root, 'config'), LOCALAPPDATA: join(root, 'cache') } : {}),
-  DSH_HOME: join(root, 'harness'), DSH_DESKTOP_DIAGNOSTIC_FILE: diagnostic, DSH_TELEMETRY_DISABLED: '1' }
-delete childEnv.ELECTRON_RUN_AS_NODE
 const child = spawn(executable, ['--remote-debugging-port=0', `--user-data-dir=${join(root, 'electron')}`], {
   detached: !windows,
   env: childEnv,
@@ -114,7 +134,7 @@ try {
   const failure = await readFile(diagnostic, 'utf8').catch(error => { if (error.code === 'ENOENT') return ''; throw error })
   await writeFile(join(output, 'desktop-shell.json'), JSON.stringify({ raster, platform: process.platform, arch: process.arch,
     renderer: document.url.replace(/([?&]token=)[^&]+/gu, '$1[redacted]'), document, ready,
-    defaultWorkspace: defaultWorkspaceDir ?? null, sandboxDisabled: false, modelCalled: false }, null, 2) + '\n')
+    defaultWorkspace: defaultWorkspaceDir ?? null, documents: documentsIsolationVerdict, sandboxDisabled: false, modelCalled: false }, null, 2) + '\n')
   if (!ready || sawFailure || failure || !raster.hasContent) {
     const reasons = []
     if (!ready) reasons.push('renderer still connecting, loading settings, no open workspace session or default workspace not created on disk')
