@@ -16,13 +16,13 @@ Intel 芯片的 Mac 选择 **Intel Mac**；使用 Intel/AMD 64 位处理器的 U
 
 | 电脑 | 下载 | 适用范围 |
 | --- | --- | --- |
-| **Intel Mac** | [DMG 安装包](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.0-rc.2-missher.20261009.1/missher-deepseek-harness-0.2.0-rc.2-20261009-mac-x64.dmg) · [版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.0-rc.2-missher.20261009.1) | Intel Mac；社区未公证包 |
-| **Ubuntu x64** | [DEB 安装包（推荐）](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.0-rc.2-missher.20261009.1/deepseek-harness-0.2.0-rc.2-linux-amd64-unsigned.deb) · [版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.0-rc.2-missher.20261009.1) | Ubuntu 24.04 x64 |
-| **Ubuntu x64 便携格式** | [AppImage](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.0-rc.2-missher.20261009.1/deepseek-harness-0.2.0-rc.2-linux-x86_64-unsigned.AppImage) | 已构建；未单独完成 AppImage 启动验收 |
+| **Intel Mac** | [DMG 安装包](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2-missher.20261012.1/deepseek-harness-0.2.1-alpha.2.20261012.1-mac-x64-unsigned.dmg) · [版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2-missher.20261012.1) | Intel Mac；社区未公证包 |
+| **Ubuntu x64** | [DEB 安装包（推荐）](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2-missher.20261012.1/deepseek-harness-0.2.1-alpha.2.20261012.1-linux-x64-unsigned.deb) · [版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2-missher.20261012.1) | Ubuntu 24.04 x64 |
+| **Ubuntu x64 便携格式** | [AppImage](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2-missher.20261012.1/deepseek-harness-0.2.1-alpha.2.20261012.1-linux-x64-unsigned.AppImage) | 已构建；未单独完成 AppImage 启动验收 |
 
-上面的已发布下载使用宿主 0.2.0-rc.2，包含归档删除、模型行内设置和浏览器集成所需的 Missher 扩展。[配套插件合集](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.0-rc.2-missher.20261009.1/missher-dsh-plugins-20261009-context-local4.zip)和[包清单](distribution/plugin-set.json)只对应这一版，不包含后来尚未发布的插件候选。该版上下文插件的安装步骤与限制见 [Context 发布说明](https://github.com/Missher12/Missher-DSH-Context-Manager/releases/tag/v0.10.0-local.4)。
+当前社区预发布为 **0.2.1-alpha.2.20261012.1**，基于官方 0.2.1-alpha.2，包含归档删除和模型行内设置所需的 Missher 扩展。请从同一发布页下载[七插件合集及精确包清单](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2-missher.20261012.1)。合集不包含私有项目和已暂停的电脑与浏览器插件。
 
-0.2.1-alpha.2 的 Ubuntu 候选已通过基础安装包与隔离窗口检查；公开发布、Intel Mac 构建和已有电脑的实际安装仍是各自独立的交付步骤。请使用目标版本发布页的附件及校验值。源码已提交或安装包已备好，不表示你的电脑已经更新。
+Ubuntu DEB 已通过安装及桌面启动检查；Intel Mac DMG 已通过原生打包、完整性、隔离工作区和实际界面检查。[验证说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2-missher.20261012.1)列出准确范围，这些检查不代表每种模型或插件流程都已验收。桌面安装包和插件包需要分别安装到目标电脑。
 
 每个发布页提供 SHA-256 校验文件和验证范围，[全部发布记录](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases)保留早期安装包。GitHub 的 **Code → Download ZIP** 下载的是源码，不能代替安装包。这些社区包尚未配置自动安装更新源。
 
@@ -39,7 +39,7 @@ Intel 芯片的 Mac 选择 **Intel Mac**；使用 Intel/AMD 64 位处理器的 U
 下载 `.deb` 后，在下载文件所在目录打开终端，运行：
 
 ```bash
-sudo apt install ./deepseek-harness-0.2.0-rc.2-linux-amd64-unsigned.deb
+sudo apt install ./deepseek-harness-0.2.1-alpha.2.20261012.1-linux-x64-unsigned.deb
 ```
 
 安装后在应用菜单中打开 **DeepSeek Harness**。DEB 已在 Ubuntu 24.04 完成安装及 Xvfb 下的 Electron 窗口启动验证；这证明应用能启动，不代表每种模型或插件流程都已验收。
@@ -63,7 +63,7 @@ sudo apt install ./deepseek-harness-0.2.0-rc.2-linux-amd64-unsigned.deb
 | [会话桥接](https://github.com/Missher12/Missher-DSH-Session-Bridge) | 复制会话 ID、跨会话投递、临时工作区和归档会话永久删除 |
 | [思考强度](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) | 思考滑块、配色以及模型能力与档位设置 |
 | [Project Ops 项目任务](https://github.com/Missher12/Missher-DSH-Project-Ops) | 项目任务、PLAN.md 开发方案和 READY.md 交付记录 |
-| [MSE 持久学习](https://github.com/Missher12/Missher-MSE-Learning) | 保存纠错和方法，并按任务与预算召回；本轮升级仍在开发 |
+| [MSE 持久学习](https://github.com/Missher12/Missher-MSE-Learning) | 保存纠错和方法，并按任务与预算召回；只公开产品代码，不含个人学习数据 |
 | [电脑与浏览器](https://github.com/Missher12/Missher-DSH-Computer-Browser) | 浏览器与电脑控制；开发暂停，当前原生操作尚未验收 |
 | [Media 媒体采集（私有）](https://github.com/Missher12/Missher-Media) | 通过 Chrome CDP 采集、保留证据和选择导出 |
 | [独立 Obsidian 记忆（私有）](https://github.com/Missher12/Missher-Obsidian-Memory) | 在 Obsidian 内记笔记、管理记忆与复盘；与已退役的 DSH Obsidian Bundle 分开 |

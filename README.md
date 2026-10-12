@@ -16,13 +16,13 @@ Choose **Intel Mac** for a Mac with an Intel processor, and **Ubuntu x64** for a
 
 | Computer / 电脑 | Download / 下载 | Requirements |
 | --- | --- | --- |
-| **Intel Mac** | [DMG 安装包](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.0-rc.2-missher.20261009.1/missher-deepseek-harness-0.2.0-rc.2-20261009-mac-x64.dmg) · [Release notes / 版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.0-rc.2-missher.20261009.1) | macOS x64; community unsigned build |
-| **Ubuntu x64** | [DEB 安装包（推荐）](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.0-rc.2-missher.20261009.1/deepseek-harness-0.2.0-rc.2-linux-amd64-unsigned.deb) · [Release notes / 版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.0-rc.2-missher.20261009.1) | Ubuntu 24.04 x64 |
-| **Ubuntu x64, portable** | [AppImage](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.0-rc.2-missher.20261009.1/deepseek-harness-0.2.0-rc.2-linux-x86_64-unsigned.AppImage) | Built; separate AppImage launch not qualified |
+| **Intel Mac** | [DMG 安装包](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2-missher.20261012.1/deepseek-harness-0.2.1-alpha.2.20261012.1-mac-x64-unsigned.dmg) · [Release notes / 版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2-missher.20261012.1) | macOS x64; community unsigned build |
+| **Ubuntu x64** | [DEB 安装包（推荐）](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2-missher.20261012.1/deepseek-harness-0.2.1-alpha.2.20261012.1-linux-x64-unsigned.deb) · [Release notes / 版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2-missher.20261012.1) | Ubuntu 24.04 x64 |
+| **Ubuntu x64, portable** | [AppImage](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2-missher.20261012.1/deepseek-harness-0.2.1-alpha.2.20261012.1-linux-x64-unsigned.AppImage) | Built; separate AppImage launch not qualified |
 
-These published downloads use Host 0.2.0-rc.2 and include the Missher extensions for archived-session deletion, model-row settings, and browser integration. The [matching plugin ZIP](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.0-rc.2-missher.20261009.1/missher-dsh-plugins-20261009-context-local4.zip) and [package manifest](distribution/plugin-set.json) describe that release only. They do not contain newer unpublished plugin candidates. See the [Context release guide](https://github.com/Missher12/Missher-DSH-Context-Manager/releases/tag/v0.10.0-local.4) for its installation and limits.
+The current community prerelease is **0.2.1-alpha.2.20261012.1**, based on official 0.2.1-alpha.2, with the Missher extensions for archived-session deletion and model-row settings. Download the [seven-plugin set and exact package list](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2-missher.20261012.1) from the same release. The set excludes private projects and the paused Computer Browser plugin.
 
-The 0.2.1-alpha.2 Ubuntu candidate has passed base-package and isolated-window checks; its public release, Intel Mac build and installation on an existing computer remain separate delivery steps. Use the release assets and checksums for the version you intend to install. A source commit or a prepared package does not mean your computer has updated.
+The Ubuntu DEB has passed installation and desktop startup checks. The Intel Mac DMG has passed native packaging, integrity, isolated workspace and actual renderer checks. [Verification details](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2-missher.20261012.1) describe the exact scope; these checks do not qualify every model or plugin workflow. Desktop and plugin packages must each be installed on the target computer.
 
 Each release includes SHA-256 checksums and its validation scope. [All releases](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases) retain earlier packages. A source ZIP under **Code** is a source snapshot, not an installer. Automatic installation updates are not configured for these community packages.
 
@@ -39,7 +39,7 @@ The community Intel build retains its separate `~/Library/Application Support/De
 Download the `.deb`, open a terminal in its directory, then run:
 
 ```bash
-sudo apt install ./deepseek-harness-0.2.0-rc.2-linux-amd64-unsigned.deb
+sudo apt install ./deepseek-harness-0.2.1-alpha.2.20261012.1-linux-x64-unsigned.deb
 ```
 
 Launch **DeepSeek Harness** from the application menu. The DEB package was installed and its Electron window was launched on Ubuntu 24.04 under Xvfb. That proves startup, not every model or plugin workflow.
@@ -63,7 +63,7 @@ Bookmark this repository as the common entry point. Each name below opens its ow
 | [Session Bridge](https://github.com/Missher12/Missher-DSH-Session-Bridge) | Session IDs, message delivery, temporary workspaces and permanent deletion of archived sessions |
 | [Reasoning Effort](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) | Reasoning slider and model capability settings |
 | [Project Ops](https://github.com/Missher12/Missher-DSH-Project-Ops) | Project tasks, development plans in PLAN.md and delivery records in READY.md |
-| [MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) | Scoped learning from corrections and evaluated methods; the current upgrade is still in development |
+| [MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) | Scoped learning from corrections and evaluated methods; product code only, without personal learning data |
 | [Computer Browser](https://github.com/Missher12/Missher-DSH-Computer-Browser) | Browser and computer controls; development is paused, and current native workflows are not accepted |
 | [Media (private)](https://github.com/Missher12/Missher-Media) | Chrome CDP collection and selected exports |
 | [Independent Obsidian Memory (private)](https://github.com/Missher12/Missher-Obsidian-Memory) | Notes, memory and review inside Obsidian; separate from the retired DSH Obsidian bundle |
