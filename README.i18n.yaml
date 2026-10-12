@@ -3,11 +3,11 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write README.md
 /missher-deepseek-harness-desktop:
-  en: 0f3f0bd931d48ab8
-  zh: 0fdf48a8a856ed3f
+  en: 70e8fd28b1384e54
+  zh: cd5d5aea5d0c5b9a
 /missher-deepseek-harness-desktop/download:
-  en: 09a567852e75b303
-  zh: 4704b5e05a5823f5
+  en: 293745afa8b50514
+  zh: 7b0fa6d73f574f57
 /missher-deepseek-harness-desktop/download/install-on-intel-mac:
   en: d32b0c1c01f65635
   zh: 498f8e659085c005
@@ -15,11 +15,11 @@
   en: 2b981c90a9d19cd5
   zh: d889e0c669fe2ce6
 /missher-deepseek-harness-desktop/download/first-start:
-  en: 2b322a35e72a248a
-  zh: 6abe953dfc379bbf
+  en: 4740f637986e8550
+  zh: 9aa2f986f9ce38f2
 /missher-deepseek-harness-desktop/plugins:
-  en: 55aabf0db0ea0617
-  zh: 9d20047ed86da1f7
+  en: 8618c816e8b767fc
+  zh: 40ca16c7b1c60cd3
 /missher-deepseek-harness-desktop/common-questions:
   en: 017dcf0c356fe196
   zh: 75dd97a33c2cef29

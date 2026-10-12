@@ -2,6 +2,8 @@
 
 [English](README.md) | 中文
 
+**[全部插件与项目总目录](plugins/README.zh.md)** · [桌面端下载](#downloads) · [已发布版本](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases)
+
 这是一个可以连接 AI 模型、操作项目文件、调用工具并安装扩展的桌面应用。本仓库维护 **Missher 社区版 DeepSeek Harness**。普通用户下载下面对应系统的安装包即可，不需要学习编译源码。
 
 应用不附带模型账号或 API 额度，安装后需配置自己的模型服务。桌面安装包、插件源码和个人数据分别管理；下载本仓库不会带走他人的聊天、密钥或学习记录。
@@ -18,7 +20,9 @@ Intel 芯片的 Mac 选择 **Intel Mac**；使用 Intel/AMD 64 位处理器的 U
 | **Ubuntu x64** | [DEB 安装包（推荐）](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.0-rc.2-missher.20261009.1/deepseek-harness-0.2.0-rc.2-linux-amd64-unsigned.deb) · [版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.0-rc.2-missher.20261009.1) | Ubuntu 24.04 x64 |
 | **Ubuntu x64 便携格式** | [AppImage](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.0-rc.2-missher.20261009.1/deepseek-harness-0.2.0-rc.2-linux-x86_64-unsigned.AppImage) | 已构建；未单独完成 AppImage 启动验收 |
 
-本次发行包含归档删除、模型行内设置和浏览器集成所需的 Missher 宿主扩展。请另外安装[配套插件合集](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.0-rc.2-missher.20261009.1/missher-dsh-plugins-20261009-context-local4.zip)中的独立插件；精确版本和校验值见[包清单](distribution/plugin-set.json)。宿主基础版本为 0.2.0-rc.2，官方 0.2.1-alpha.1 属于尚未验收的另一轮迁移。 Context local.4 保留已有时限设置和用量记录；自动摘要额度用尽时，可在恢复页预检并明确确认一次额外维护调用。安装步骤与限制见 [Context 发布说明](https://github.com/Missher12/Missher-DSH-Context-Manager/releases/tag/v0.10.0-local.4)。
+上面的已发布下载使用宿主 0.2.0-rc.2，包含归档删除、模型行内设置和浏览器集成所需的 Missher 扩展。[配套插件合集](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.0-rc.2-missher.20261009.1/missher-dsh-plugins-20261009-context-local4.zip)和[包清单](distribution/plugin-set.json)只对应这一版，不包含后来尚未发布的插件候选。该版上下文插件的安装步骤与限制见 [Context 发布说明](https://github.com/Missher12/Missher-DSH-Context-Manager/releases/tag/v0.10.0-local.4)。
+
+0.2.1-alpha.2 的 Ubuntu 候选已通过基础安装包与隔离窗口检查；公开发布、Intel Mac 构建和已有电脑的实际安装仍是各自独立的交付步骤。请使用目标版本发布页的附件及校验值。源码已提交或安装包已备好，不表示你的电脑已经更新。
 
 每个发布页提供 SHA-256 校验文件和验证范围，[全部发布记录](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases)保留早期安装包。GitHub 的 **Code → Download ZIP** 下载的是源码，不能代替安装包。这些社区包尚未配置自动安装更新源。
 
@@ -45,11 +49,11 @@ sudo apt install ./deepseek-harness-0.2.0-rc.2-linux-amd64-unsigned.deb
 1. 选择一个项目文件夹作为工作区。如果系统没有可用的“文档”目录，手动选择文件夹即可。
 2. 打开模型设置，填入自己的服务商、地址、API Key 和模型名称；文本、图片与思考档位取决于模型实际能力。
 3. 发一条简单消息检查服务是否可用，模型调用费用由所使用的服务商计算。
-4. 解压配套插件合集，通过 **插件 → 添加插件** 逐个安装所需 `.tgz`。已有插件在版本旁检查更新，按提示选择新版包，准备好后等任务结束再正常重启；对照清单检查显示版本。桌面安装包不会自动安装个人插件。
+4. 解压配套插件合集，通过 **插件 → 添加插件** 逐个安装所需 `.tgz`。更新已有版本时按该插件安装说明操作，等活动任务结束再重启；对照所选发布清单检查已安装及已启用版本。桌面安装包不会自动安装个人插件。
 
 ## 独立插件：按需要选择
 
-本页集中展示当前开发的插件。每一行都能跳转到插件自己的 GitHub。各仓库 README 说明安装方法、应用内入口、设置与限制，并能返回本页。桌面版通过 **插件 → 添加插件** 安装；具体配置组和移除方式见[安装指南](docs/cookbook/install-cordis-plugins.zh.md)。
+收藏本仓库即可作为统一入口。下表每个名字都能打开自己的 GitHub；[完整目录](plugins/README.zh.md)说明使用位置、私有项目和暂停范围。DSH 插件按[安装指南](docs/cookbook/install-cordis-plugins.zh.md)操作；独立 Obsidian 插件安装在 Obsidian 中。
 
 | 插件 | 主要用途 |
 | --- | --- |
@@ -58,11 +62,13 @@ sudo apt install ./deepseek-harness-0.2.0-rc.2-linux-amd64-unsigned.deb
 | [输出外观](https://github.com/Missher12/Missher-DSH-Output-Renderer) | 四种阅读布局、字号间距与流式动效 |
 | [会话桥接](https://github.com/Missher12/Missher-DSH-Session-Bridge) | 复制会话 ID、跨会话投递、临时工作区和归档会话永久删除 |
 | [思考强度](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) | 思考滑块、配色以及模型能力与档位设置 |
-| [MSE 持久学习](https://github.com/Missher12/Missher-MSE-Learning) | 保存纠错和方法，并按任务与预算召回 |
-| [电脑与浏览器](https://github.com/Missher12/Missher-DSH-Computer-Browser) | 可见浏览器操作与按会话隔离的电脑控制；需要配套 Missher Host 适配器；真实电脑及模型操作仍需分平台验收 |
+| [Project Ops 项目任务](https://github.com/Missher12/Missher-DSH-Project-Ops) | 项目任务、PLAN.md 开发方案和 READY.md 交付记录 |
+| [MSE 持久学习](https://github.com/Missher12/Missher-MSE-Learning) | 保存纠错和方法，并按任务与预算召回；本轮升级仍在开发 |
+| [电脑与浏览器](https://github.com/Missher12/Missher-DSH-Computer-Browser) | 浏览器与电脑控制；开发暂停，当前原生操作尚未验收 |
 | [Media 媒体采集（私有）](https://github.com/Missher12/Missher-Media) | 通过 Chrome CDP 采集、保留证据和选择导出 |
+| [独立 Obsidian 记忆（私有）](https://github.com/Missher12/Missher-Obsidian-Memory) | 在 Obsidian 内记笔记、管理记忆与复盘；与已退役的 DSH Obsidian Bundle 分开 |
 
-Media 保持私有：GitHub 显示 404 可能是账号没有访问权限。MSE 只公开产品代码，不包含私人学习记录。所有插件按需选择；取消宿主版本号限制不等于保证未来所有版本都兼容。
+Media 和独立 Obsidian 保持私有：GitHub 显示 404 可能是账号没有访问权限。MSE 只公开产品代码，不包含私人学习记录。所有插件按需选择；取消宿主版本号限制不等于保证未来所有版本都兼容。
 
 ## 常见问题
 

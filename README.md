@@ -2,6 +2,8 @@
 
 English | [中文](README.zh.md)
 
+**[All plugins and project links](plugins/README.md)** · [Desktop downloads](#downloads) · [Published releases](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases)
+
 A desktop workspace for working with AI models, files, tools and optional plugins. This is the **Missher community build** of DeepSeek Harness. Download the app for your computer below; you do not need to build the source to use it.
 
 The application does not include a model account or API credits. Configure your own provider after installation. Plugin source, application downloads and personal data are separate: downloading this repository never copies someone else’s chats, keys or learned experiences.
@@ -18,7 +20,9 @@ Choose **Intel Mac** for a Mac with an Intel processor, and **Ubuntu x64** for a
 | **Ubuntu x64** | [DEB 安装包（推荐）](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.0-rc.2-missher.20261009.1/deepseek-harness-0.2.0-rc.2-linux-amd64-unsigned.deb) · [Release notes / 版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.0-rc.2-missher.20261009.1) | Ubuntu 24.04 x64 |
 | **Ubuntu x64, portable** | [AppImage](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.0-rc.2-missher.20261009.1/deepseek-harness-0.2.0-rc.2-linux-x86_64-unsigned.AppImage) | Built; separate AppImage launch not qualified |
 
-This release includes the Missher Host extensions for archived-session deletion, model-row settings, and browser integration. Install the independent plugins from the [matching plugin ZIP](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.0-rc.2-missher.20261009.1/missher-dsh-plugins-20261009-context-local4.zip); exact versions and digests are in [the package manifest](distribution/plugin-set.json). The Host base is 0.2.0-rc.2; upstream 0.2.1-alpha.1 is a separate, unqualified migration. Context local.4 preserves your timeout settings and usage records. If an automatic summary allowance is exhausted, its recovery page provides a preflight and explicit confirmation for one extra maintenance call. See the [Context release guide](https://github.com/Missher12/Missher-DSH-Context-Manager/releases/tag/v0.10.0-local.4) for installation and limits.
+These published downloads use Host 0.2.0-rc.2 and include the Missher extensions for archived-session deletion, model-row settings, and browser integration. The [matching plugin ZIP](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.0-rc.2-missher.20261009.1/missher-dsh-plugins-20261009-context-local4.zip) and [package manifest](distribution/plugin-set.json) describe that release only. They do not contain newer unpublished plugin candidates. See the [Context release guide](https://github.com/Missher12/Missher-DSH-Context-Manager/releases/tag/v0.10.0-local.4) for its installation and limits.
+
+The 0.2.1-alpha.2 Ubuntu candidate has passed base-package and isolated-window checks; its public release, Intel Mac build and installation on an existing computer remain separate delivery steps. Use the release assets and checksums for the version you intend to install. A source commit or a prepared package does not mean your computer has updated.
 
 Each release includes SHA-256 checksums and its validation scope. [All releases](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases) retain earlier packages. A source ZIP under **Code** is a source snapshot, not an installer. Automatic installation updates are not configured for these community packages.
 
@@ -45,11 +49,11 @@ Launch **DeepSeek Harness** from the application menu. The DEB package was insta
 1. Choose a project folder as your workspace. If the system Documents directory is unavailable, select a folder manually.
 2. Open model settings, add your provider, endpoint, API key and model name. Model support determines text/image input and reasoning levels.
 3. Start a small conversation to verify your provider. API usage may be charged by that provider.
-4. Extract the matching plugin ZIP and use **Plugins → Add plugin** for the `.tgz` files you need. For an installed plugin, check updates beside its version and select the new package when prompted; prepare the update and restart after active tasks finish. Compare the displayed versions with the manifest. Desktop installers do not automatically install personal plugins.
+4. Extract the matching plugin ZIP and use **Plugins → Add plugin** for the `.tgz` files you need. Follow the plugin's installation guide to replace an existing version, and finish active tasks before restarting. Compare the installed and active versions with the selected release manifest. Desktop installers do not automatically install personal plugins.
 
 ## Plugins / 独立插件
 
-This directory focuses on the plugins currently in development. Each row opens the plugin’s own GitHub repository. Its README covers installation, in-app entry points, settings and limits, and links back here. Install a plugin package through the desktop **Plugins → Add plugin** page; follow the [installation guide](docs/cookbook/install-cordis-plugins.md) for profile ownership and removal.
+Bookmark this repository as the common entry point. Each name below opens its own GitHub repository; the [complete directory](plugins/README.md) explains where to use it, which projects are private, and which work is paused. Follow the [installation guide](docs/cookbook/install-cordis-plugins.md) for DSH plugins; independent Obsidian installs in Obsidian.
 
 | Plugin | What it does |
 | --- | --- |
@@ -58,11 +62,13 @@ This directory focuses on the plugins currently in development. Each row opens t
 | [Output Renderer](https://github.com/Missher12/Missher-DSH-Output-Renderer) | Four reading layouts, spacing and streaming effects |
 | [Session Bridge](https://github.com/Missher12/Missher-DSH-Session-Bridge) | Session IDs, message delivery, temporary workspaces and permanent deletion of archived sessions |
 | [Reasoning Effort](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) | Reasoning slider and model capability settings |
-| [MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) | Scoped learning from corrections and evaluated methods |
-| [Computer Browser](https://github.com/Missher12/Missher-DSH-Computer-Browser) | Visible browser automation and session-owned computer controls; requires the matching Missher Host adapters; real computer/model workflows still need platform acceptance |
+| [Project Ops](https://github.com/Missher12/Missher-DSH-Project-Ops) | Project tasks, development plans in PLAN.md and delivery records in READY.md |
+| [MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) | Scoped learning from corrections and evaluated methods; the current upgrade is still in development |
+| [Computer Browser](https://github.com/Missher12/Missher-DSH-Computer-Browser) | Browser and computer controls; development is paused, and current native workflows are not accepted |
 | [Media (private)](https://github.com/Missher12/Missher-Media) | Chrome CDP collection and selected exports |
+| [Independent Obsidian Memory (private)](https://github.com/Missher12/Missher-Obsidian-Memory) | Notes, memory and review inside Obsidian; separate from the retired DSH Obsidian bundle |
 
-Media is private: a 404 can mean your GitHub account lacks permission. MSE publishes the product only, without private learning records. All plugins are optional; a removed host-version range is not a guarantee of compatibility with every future release.
+Media and independent Obsidian are private: a 404 can mean your GitHub account lacks permission. MSE publishes the product only, without private learning records. All plugins are optional; a removed host-version range is not a guarantee of compatibility with every future release.
 
 ## Common questions
 
