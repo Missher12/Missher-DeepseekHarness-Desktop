@@ -52,7 +52,7 @@ jobs:
           node apps/desktop/scripts/smoke-community-shell.mjs "$artifacts/mac/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness" desktop-verification
       - name: Preserve installers and verification
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: missher-mac-x64-verified
           compression-level: 0
@@ -61,7 +61,7 @@ jobs:
             desktop-verification/
       - name: Preserve failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: missher-mac-x64-diagnostics
           path: |

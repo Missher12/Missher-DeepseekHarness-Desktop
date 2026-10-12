@@ -74,7 +74,7 @@ jobs:
           xvfb-run -a -s '-screen 0 1440x1000x24' node apps/desktop/scripts/smoke-community-shell.mjs "$(command -v deepseek-harness)" desktop-verification
       - name: Upload verified installers and evidence
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: missher-${{ matrix.target }}-verified
           compression-level: 0
@@ -84,7 +84,7 @@ jobs:
             ${{ matrix.workdir }}/desktop-verification/
       - name: Preserve failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: missher-${{ matrix.target }}-diagnostics
           path: |
