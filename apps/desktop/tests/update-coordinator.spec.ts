@@ -53,7 +53,7 @@ function fixture() {
     isUpdateAvailable: true,
     updateInfo: { version: '1.1.0-rc.2' },
   }))
-  const downloadUpdate = vi.fn(async () => {
+  const downloadUpdate = vi.fn<AppUpdater['downloadUpdate']>(async () => {
     events.emit('download-progress', { percent: 58 })
     events.emit('download-progress', { percent: 100 })
     events.emit('update-downloaded', { version: '1.1.0-rc.2' })
@@ -73,6 +73,46 @@ function fixture() {
 }
 
 describe('desktop update coordinator', () => {
+  it('honors cancellation before transfer startup without issuing a request', async () => {
+    const f = fixture()
+    await f.coordinator.check()
+    const operation = f.coordinator.download('1.1.0-rc.2')
+    f.coordinator.cancelDownload()
+    await expect(operation).resolves.toEqual({ phase: 'available', version: '1.1.0-rc.2' })
+    expect(f.downloadUpdate).not.toHaveBeenCalled()
+    await expect(f.coordinator.install('1.1.0-rc.2')).rejects.toThrow('not ready')
+  })
+
+  it('ignores a late downloaded event after cancellation even if the transport resolves', async () => {
+    const f = fixture()
+    await f.coordinator.check()
+    f.downloadUpdate.mockImplementationOnce(async () => {
+      f.coordinator.cancelDownload()
+      f.events.emit('update-downloaded', { version: '1.1.0-rc.2' })
+      return ['cancelled-package']
+    })
+    await expect(f.coordinator.download('1.1.0-rc.2')).resolves.toEqual({ phase: 'available', version: '1.1.0-rc.2' })
+    await expect(f.coordinator.install('1.1.0-rc.2')).rejects.toThrow('not ready')
+    expect(f.downloadResult).not.toHaveBeenCalled()
+  })
+
+  it('cancels a real token, waits for settlement, and never offers the partial download for installation', async () => {
+    const f = fixture()
+    await f.coordinator.check()
+    f.downloadUpdate.mockImplementationOnce(token => new Promise((_resolve, reject) => {
+      if (token === undefined) throw new Error('Missing download cancellation token')
+      token.once('cancel', () => { reject(new Error('cancelled')) })
+    }))
+    const operation = f.coordinator.download('1.1.0-rc.2')
+    await vi.waitFor(() => { expect(f.downloadUpdate).toHaveBeenCalledTimes(1) })
+    f.coordinator.cancelDownload()
+    await expect(operation).resolves.toEqual({ phase: 'available', version: '1.1.0-rc.2' })
+    await expect(f.coordinator.install('1.1.0-rc.2')).rejects.toThrow('not ready')
+    expect(f.quitAndInstall).not.toHaveBeenCalled()
+    expect(f.downloadResult).not.toHaveBeenCalled()
+    await expect(f.coordinator.download('1.1.0-rc.2')).resolves.toMatchObject({ phase: 'ready' })
+  })
+
   it('keeps safe preparation diagnostics separate and clears them on an explicit retry', async () => {
     const f = fixture()
     await f.coordinator.check()

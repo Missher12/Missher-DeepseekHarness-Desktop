@@ -7,6 +7,8 @@ import electronUpdater, { type AppUpdater, type ProgressInfo, type UpdateInfo } 
 import { gt, valid } from 'semver'
 import type { DesktopUpdateState } from './ipc.ts'
 import { DesktopUpdateHttpExecutor } from './update-http-executor.ts'
+import { CancellationToken } from 'builder-util-runtime'
+import { validateCommunityUpdate } from './community-feed.ts'
 import { DesktopUpdatePreparationError } from './update-error.ts'
 
 const { autoUpdater } = electronUpdater
@@ -14,6 +16,8 @@ const { autoUpdater } = electronUpdater
 /** Owns one updater target until its download and installation settle. */
 export class DesktopUpdateCoordinator {
   private current: DesktopUpdateState = { phase: 'idle' }
+  private notes = ''
+  private cancellation: CancellationToken | undefined
   private candidate: string | undefined
   private downloaded = false
   private disposed = false
@@ -22,13 +26,13 @@ export class DesktopUpdateCoordinator {
   private installOperation: Promise<DesktopUpdateState> | undefined
 
   private readonly onProgress = (progress: ProgressInfo): void => {
-    if (this.downloadOperation === undefined || this.downloaded) return
+    if (this.downloadOperation === undefined || this.downloaded || this.cancellation?.cancelled) return
     const percent = Math.min(100, Math.max(0, progress.percent))
     this.setState({ phase: percent >= 100 ? 'verifying' : 'downloading', ...this.target(), percent })
   }
 
   private readonly onDownloaded = (info: UpdateInfo): void => {
-    if (this.downloadOperation === undefined || info.version !== this.candidate) return
+    if (this.downloadOperation === undefined || this.cancellation?.cancelled || info.version !== this.candidate) return
     this.downloaded = true
   }
 
@@ -78,6 +82,9 @@ export class DesktopUpdateCoordinator {
   /** Latest observable state; complete download identity remains main-process-owned. */
   get state(): DesktopUpdateState { return this.current }
 
+  /** Plain text release notes from the last checked metadata. */
+  get releaseNotes(): string { return this.notes }
+
   /** Whether this build can download and install a matching packaged update. */
   get hasInstallerSource(): boolean { return this.enabled() }
 
@@ -104,24 +111,38 @@ export class DesktopUpdateCoordinator {
   async download(version: string): Promise<DesktopUpdateState> {
     this.assertLive()
     if (this.downloaded || this.installOperation !== undefined) return this.current
+    const cancellation = this.cancellation ??= new CancellationToken()
     this.downloadOperation ??= Promise.resolve().then(async () => {
       await this.checkOperation
       this.assertLive()
       if (this.candidate === undefined) throw new Error('desktop update: no checked update is available')
       if (version !== this.candidate) throw new Error('desktop update: download confirmation is stale')
+      if (cancellation.cancelled) return this.setState({ phase: 'available', version })
       this.setState({ phase: 'downloading', version, percent: 0 })
       try {
-        await this.updater.downloadUpdate()
+        await this.updater.downloadUpdate(cancellation)
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Cancellation can occur while awaiting the transfer.
+        if (cancellation.cancelled) {
+          this.downloaded = false
+          return this.setState({ phase: 'available', version })
+        }
         if (!this.downloaded) throw new Error('desktop update: platform preparation did not report readiness')
         this.downloadResult?.(true)
         return this.setState({ phase: 'ready', version })
       } catch (error) {
         this.downloaded = false
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Cancellation can occur while awaiting the transfer.
+        if (cancellation.cancelled) return this.setState({ phase: 'available', version })
         this.downloadResult?.(false, error instanceof DesktopUpdatePreparationError ? error.kind : 'download_failed')
         return this.setState(this.failure(error, 'download'))
       }
-    }).finally(() => { this.downloadOperation = undefined })
+    }).finally(() => { this.downloadOperation = undefined; this.cancellation = undefined })
     return this.downloadOperation
+  }
+
+  /** Cancel an active transfer; settlement remains owned by the download promise. */
+  cancelDownload(): void {
+    this.cancellation?.cancel()
   }
 
   /**
@@ -150,6 +171,7 @@ export class DesktopUpdateCoordinator {
   /** Remove owned listeners and prevent pending library operations from publishing into closed UI. */
   dispose(): void {
     this.disposed = true
+    this.cancelDownload()
     this.updater.off('download-progress', this.onProgress)
     this.updater.off('update-downloaded', this.onDownloaded)
     // Pending updater promises can still emit EventEmitter errors during shutdown.
@@ -188,6 +210,10 @@ export class DesktopUpdateCoordinator {
       if (!this.enabled()) throw new Error('desktop update: this application has no packaged update source')
       const result = await this.updater.checkForUpdates()
       if (result === null) throw new Error('desktop update: no check result was returned')
+      if (app.isPackaged && process.platform === 'linux') {
+        validateCommunityUpdate(result.updateInfo, process.platform, process.arch)
+      }
+      this.notes = (typeof result.updateInfo.releaseNotes === 'string' ? result.updateInfo.releaseNotes : '').slice(0, 8000)
       const version = result.updateInfo.version
       if (valid(version) === null) throw new Error('desktop update: feed version is invalid')
       this.candidate = result.isUpdateAvailable && gt(version, this.currentVersion()) ? version : undefined

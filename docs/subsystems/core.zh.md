@@ -110,7 +110,7 @@ interface Agent {
    * turn and runs when the aborted activity converges to idle; a `disposed`
    * cancel leaves it parked. A wake submitted while already idle always opens
    * its turn boundary, even when its message is cleared before the driver
-   * claims ([cancel-convergence wake latch](../../../../.agents/notes/implemented/bug-fix/2026-08-07-cancel-convergence-wake-latch.md)).
+   * claims ([driver wake convergence](../../agent-loop/src/agent.ts)).
    * @param message - identified content and the source that supplied it.
    * @param target - the preferred next-turn or next-step inbox boundary.
    * @param wakeup - whether delivery may wake the driver.
@@ -505,6 +505,12 @@ Registry of YAML-declared presets and the revisions live Agents retain.
  */
 async register(definition: PresetDefinition): Promise<() => Promise<void>>
 
+/** Inspect retained revisions, or the exact revision an Agent joined.
+ * @param ctx - optional Agent context; omission includes all retained revisions.
+ * @returns detached module references and isolation diagnostics; no match returns an empty list.
+ */
+inspectCompositions(ctx?: Context): AgentPresetInspection[]
+
 /** Read every declared preset, including activation failures.
  * @returns Display metadata and loading diagnostics.
  */
@@ -546,6 +552,13 @@ composeFrom(ctx: Context, parent: Context): string | undefined
  * @returns Its preset id, if bound.
  */
 composedPreset(ctx: Context): string | undefined
+
+/** Identify a tool owner's tree within the exact preset revision this Agent joined.
+ * @param ctx Agent context.
+ * @param tree Loader tree owning the registration.
+ * @returns Preset id only for the joined revision's tree.
+ */
+presetForTree(ctx: Context, tree: EntryTree): string | undefined
 
 /** Read a service supplied inside an Agent's isolated preset group.
  * @param agent Agent whose composition is queried.

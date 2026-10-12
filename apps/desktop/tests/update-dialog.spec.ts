@@ -214,3 +214,14 @@ it('reads the current locale for each presentation', async () => {
     await pending
   }
 })
+
+it('refreshes transfer progress without invalidating the visible cancel response', async () => {
+  const f = setup()
+  const pending = f.show()
+  const original = f.invoke(UPDATE_DIALOG_IPC.status) as { revision: number }
+  dialogs!.updateMessage('下载进度 58%')
+  expect(f.invoke(UPDATE_DIALOG_IPC.status)).toMatchObject({ revision: original.revision, message: '下载进度 58%' })
+  f.invoke(UPDATE_DIALOG_IPC.respond, 1)
+  expect((await pending).response).toBe(1)
+  expect(dialogs!.isOpen).toBe(false)
+})

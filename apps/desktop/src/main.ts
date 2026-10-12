@@ -54,6 +54,7 @@ import { DesktopMandatoryUpdatePolicy, resolveDesktopPolicyConfig, type DesktopP
 import { desktopClientMetadata, desktopClientVersion } from './client-metadata.ts'
 import { DesktopMandatoryUpdateWindow } from './mandatory-update-window.ts'
 import { DesktopPolicyTestAuth } from './policy-test-auth.ts'
+import { readDesktopSettings } from './settings.ts'
 import { DesktopUpdateDialog, type UpdateDialogOptions } from './update-dialog.ts'
 import { readDesktopRuntime } from './runtime-tree.ts'
 import { DesktopBrowserAutomation } from './browser-automation.ts'
@@ -162,7 +163,7 @@ function runtimeResources(): RuntimeResources {
   const nodeBin = development ? join(app.getAppPath(), 'scripts', 'node-bin') : join(process.resourcesPath, 'runtime', 'bin')
   const pnpm = (development ? process.env.DSH_DESKTOP_PNPM_ENTRY : undefined)
     ?? (development ? join(app.getAppPath(), 'node_modules', 'pnpm', 'bin', 'pnpm.mjs')
-      : join(process.resourcesPath, 'runtime', 'pnpm', 'bin', 'pnpm.mjs'))
+      : join(process.resourcesPath, 'runtime', 'primary-runtime', 'dependencies', 'pnpm', 'bin', 'pnpm.mjs'))
   const dsh = (development ? process.env.DSH_DESKTOP_DSH_DIR : undefined)
     ?? (development ? join(app.getAppPath(), '.desktop-build', 'development', 'project') : join(app.getAppPath(), 'dsh'))
   return { node, nodeBin, pnpm, dsh }
@@ -321,6 +322,7 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
 }
 
 async function main(): Promise<void> {
+  const desktopSettings = readDesktopSettings(app.getPath('userData'))
   void pruneCrashReports(app.getPath('logs'))
   const journalDirectory = process.env.DSH_DESKTOP_UPDATE_JOURNAL_DIR
   const updateJournal = journalDirectory === undefined ? undefined : new DesktopUpdateJournal(journalDirectory, app.getVersion())
@@ -626,9 +628,15 @@ async function main(): Promise<void> {
     }
     return shown
   }
+  let downloadPromptActive = false
   const publishUpdate = (state: DesktopUpdateState): DesktopUpdateState => {
     updateJournal?.state(state)
     updateState = state
+    if (downloadPromptActive && state.phase === 'downloading') {
+      updateDialog.updateMessage(formatDesktopMessage(locale.messages.updateDownloading, {
+        percent: String(Math.floor(state.percent ?? 0)),
+      }))
+    }
     mandatoryUI?.sync()
     for (const window of BrowserWindow.getAllWindows()) {
       window.webContents.send(DESKTOP_IPC.updatesPresentation, presentDesktopUpdate(state))
@@ -745,7 +753,16 @@ async function main(): Promise<void> {
   const downloadUpdate = async (version: string): Promise<DesktopUpdateState> => {
     void track('desktop_upgrade_click', {})
     updateJournal?.action('download-requested')
-    const state = await updates.download(version)
+    const controller = new AbortController()
+    downloadPromptActive = !isMandatory()
+    const progress = downloadPromptActive ? ordinaryMessageBox({
+      title: locale.messages.updateCheckTitle,
+      message: formatDesktopMessage(locale.messages.updateDownloading, { percent: '0' }),
+      buttons: [locale.messages.cancel], cancelId: 0, signal: controller.signal,
+    }).then(() => { if (!controller.signal.aborted) updates.cancelDownload() }) : Promise.resolve()
+    let state: DesktopUpdateState
+    try { state = await updates.download(version) }
+    finally { controller.abort(); downloadPromptActive = false; await progress }
     if (state.phase !== 'ready' || quitting) return state
     // Only a completed user-driven download opens this prompt; cancelling installation does not reopen it.
     // A confirmation on a hidden window would go unseen, so it waits for the next show; the mandatory
@@ -825,14 +842,14 @@ async function main(): Promise<void> {
     await browserAutomation.control(lease, action)
   })
 
-  session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['ws://127.0.0.1/*'] }, (details, callback) => {
+  session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['ws://127.0.0.1/*', 'wss://127.0.0.1/*'] }, (details, callback) => {
     if (hostUrl === undefined || hostCookie === undefined || details.webContentsId !== mainWindow?.webContents.id) {
       callback({})
       return
     }
     const target = new URL(hostUrl)
     const requested = new URL(details.url)
-    if (requested.host !== target.host) { callback({}); return }
+    if (requested.host !== target.host || requested.protocol !== (target.protocol === 'https:' ? 'wss:' : 'ws:')) { callback({}); return }
     const headers = Object.fromEntries(Object.entries(details.requestHeaders).map(([name, value]) => [name.toLowerCase(), value]))
     if (headers.origin !== 'dsh-app://app') { callback({ cancel: true }); return }
     callback({ requestHeaders: { ...headers, origin: target.origin, cookie: hostCookie, 'sec-fetch-site': 'same-origin' } })
@@ -975,7 +992,7 @@ async function main(): Promise<void> {
         if (manual) {
           const result = await ordinaryMessageBox({ title: locale.messages.updateCheckTitle,
             message: formatDesktopMessage(locale.messages.updateAvailable, { version: state.version ?? '' }),
-            detail: locale.messages.updateDetail,
+            detail: [locale.messages.updateDetail, updates.releaseNotes].filter(Boolean).join('\n\n'),
             buttons: [locale.messages.updateDownload], cancelId: 1 })
           if (result.response !== 0) return
         }
@@ -1008,6 +1025,7 @@ async function main(): Promise<void> {
     void authenticatePolicy().catch((error: unknown) => { console.error(error) })
   }
   const queuePolicyAuthentication = (): void => {
+    if (!desktopSettings.updates.allowTestAuthPopupWindow) return
     if (authenticationOperation !== undefined) {
       policyAuth?.focus(); updateDialog.focus()
       return
@@ -1016,7 +1034,8 @@ async function main(): Promise<void> {
     flushQueuedPolicyAuthentication()
   }
   const runPolicyAuthentication = async () => {
-    if (policyAuth === undefined || mandatoryPolicy === undefined || quitting) return undefined
+    if (!desktopSettings.updates.allowTestAuthPopupWindow
+      || policyAuth === undefined || mandatoryPolicy === undefined || quitting) return undefined
     const parent = mandatoryUI?.confirmationWindow ?? currentDialogWindow()
     if (parent === undefined) return undefined
     const consent = await updateDialog.show(parent, { type: 'info', title: locale.messages.policyLoginTitle,
@@ -1038,7 +1057,7 @@ async function main(): Promise<void> {
   const checkPolicyManually = async (authentication: 'immediate' | 'deferred' = 'immediate') => {
     if (authenticationOperation !== undefined) return authenticatePolicy()
     const policy = await mandatoryPolicy?.check('manual', true)
-    if (policy?.error !== 'authentication-required') return policy
+    if (policy?.error !== 'authentication-required' || !desktopSettings.updates.allowTestAuthPopupWindow) return policy
     if (authentication === 'immediate') return authenticatePolicy()
     queuePolicyAuthentication()
     return policy

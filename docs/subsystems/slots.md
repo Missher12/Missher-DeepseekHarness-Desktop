@@ -8,6 +8,8 @@ This page documents slot ownership, component inputs, extension APIs, and the sh
 
 `plugins.bundle.config` supplies bundle detail configuration, keyed by npm package name. `plugins.bundle.activation` renders optional guidance after user-requested enablement, with owner callbacks to dismiss or open that bundle’s details. `conversation.input.activity` supplies one action between the model selector and Send, with toolbar expansion released on unmount.
 
+The plugin catalog declares `plugins.add.actions`, a root-scoped list for `MenuItemButton` rows after installation in the Add plugin menu. Its owner supplies `onDismiss()` to close the menu before starting an action. The slot follows the owning Plugins page declaration lifetime.
+
 `settings.models.model-fields` places adapter-owned controls beside model input types. Its owner passes the current row, inherited capability data, disabled state, and a draft replacement callback; extensions do not issue independent settings writes.
 
 ## Declaration and lifecycle
@@ -135,6 +137,7 @@ root
 │        ├─ settings.models.footer
 │        └─ settings.plugins.tab
 ├─ main
+│  ├─ plugins.add.actions
 │  ├─ plugins.item
 │  ├─ plugins.bundle.config
 │  ├─ plugins.row.config
@@ -144,14 +147,16 @@ root
 │  └─ main.conversation
 │     ├─ conversation.session
 │     │  └─ conversation.view
-│     │     ├─ conversation.chat.node
-│     │     │  ├─ conversation.chat.assistant-actions
-│     │     │  ├─ conversation.chat.commandview
-│     │     │  ├─ conversation.chat.turnTail
-│     │     │  └─ tool.call.toolview
-│     │     │     ├─ tool.call.images
-│     │     │     └─ tool.view.cordis
-│     │     ├─ conversation.message.images
+│     │     ├─ conversation.chat.flow
+│     │     │  ├─ conversation.chat.node
+│     │     │  │  ├─ conversation.chat.assistant-actions
+│     │     │  │  ├─ conversation.chat.reasoning.body
+│     │     │  │  ├─ conversation.chat.commandview
+│     │     │  │  ├─ conversation.chat.turnTail
+│     │     │  │  └─ tool.call.toolview
+│     │     │  │     ├─ tool.call.images
+│     │     │  │     └─ tool.view.cordis
+│     │     │  └─ conversation.message.images
 │     │     └─ conversation.trajectory.images
 │     ├─ conversation.header
 │     │  ├─ conversation.header.leading
@@ -184,6 +189,7 @@ root
 │     │  └─ sidebar.right.tab.guide.entry
 │     ├─ sidebar.right.pane.tab.title
 │     └─ sidebar.right.tab.menu.item
+├─ shell.bottom
 ├─ shell.leading
 └─ shell.overlay
    └─ shell.quota-notice

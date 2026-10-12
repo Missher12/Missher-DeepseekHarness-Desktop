@@ -27,6 +27,8 @@ try {
     { id: 'llm-deepseek', disabled: true },
     { id: 'session-title-llm', disabled: true },
     { id: 'session-telemetry-otel', disabled: true },
+    { id: 'desktop-product-telemetry', disabled: true },
+    { id: 'product-analytics', disabled: true },
     { id: 'agent-instructions', disabled: true },
     { id: 'agent-preset-registry', config: { default: 'standard' } },
     { insert: [{ id: 'update-qualification', name: new URL('../tests/fixtures/host-update-control.mjs', import.meta.url).href }] },
@@ -34,7 +36,7 @@ try {
   const environment = Object.fromEntries(Object.entries(process.env).filter(([name]) =>
     /^(?:path|systemroot|windir|comspec|pathext)$/iu.test(name)))
   const child = spawn(process.execPath, [fileURLToPath(new URL('../tests/fixtures/host-update-qualification.mjs', import.meta.url)), root], {
-    cwd: root, env: { ...environment, DSH_HOME: join(root, 'home'), USERPROFILE: root, HOME: root,
+    cwd: root, env: { ...environment, DSH_CLIENT_VERSION: manifest.version, DSH_HOME: join(root, 'home'), USERPROFILE: root, HOME: root,
       TEMP: root, TMP: root, TMPDIR: root }, stdio: 'inherit', windowsHide: true,
   })
   let timedOut = false

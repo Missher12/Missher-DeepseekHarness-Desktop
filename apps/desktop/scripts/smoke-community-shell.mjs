@@ -5,10 +5,10 @@ import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
-import { isDesktopUiReady } from './community-shell-readiness.mjs'
+import { isDesktopUiReady, FAILURE_TEXT } from './community-shell-readiness.mjs'
 import { inspectDesktopScreenshot } from './community-shell-raster.mjs'
 
-if (!['linux', 'win32'].includes(process.platform)) throw new Error('Shell smoke requires Linux or Windows')
+if (!['linux', 'win32', 'darwin'].includes(process.platform)) throw new Error('Shell smoke requires Linux, Windows or macOS')
 const windows = process.platform === 'win32'
 const executable = resolve(process.argv[2])
 const output = resolve(process.argv[3])
@@ -17,11 +17,34 @@ if (!executableStat.isFile() || (!windows && !(executableStat.mode & 0o111))) th
 await mkdir(output, { recursive: true })
 const root = await mkdtemp(join(tmpdir(), 'missher-desktop-smoke-'))
 const diagnostic = join(root, 'fatal.txt')
-const child = spawn(executable, ['--remote-debugging-port=0'], {
+// A fresh XDG_CONFIG_HOME has no user-dirs.dirs, so `xdg-user-dir DOCUMENTS`
+// falls back to $HOME, which the Host rejects as an unavailable Documents
+// directory and first-use default Workspace creation then fails. Reproduce a
+// normal desktop profile by declaring an isolated Documents directory, then
+// verify the Host really created the default Workspace under it.
+let defaultWorkspaceDir
+if (process.platform === 'linux') {
+  await mkdir(join(root, 'config'), { recursive: true })
+  const documents = join(root, 'documents')
+  await mkdir(documents, { recursive: true })
+  await writeFile(join(root, 'config', 'user-dirs.dirs'), `XDG_DOCUMENTS_DIR="${documents}"\n`)
+  defaultWorkspaceDir = join(documents, 'deepseek-harness', 'default-workspace')
+} else if (process.platform === 'darwin') {
+  defaultWorkspaceDir = join(root, 'Documents', 'deepseek-harness', 'default-workspace')
+}
+async function workspaceOnDisk() {
+  if (defaultWorkspaceDir === undefined) return true
+  try { return (await stat(defaultWorkspaceDir)).isDirectory() } catch { return false }
+}
+// The Host may run Node itself through ELECTRON_RUN_AS_NODE; the packaged
+// Electron GUI must not inherit that switch or it rejects Chromium flags.
+const childEnv = { ...process.env, ...(process.platform === 'darwin' ? { HOME: root } : {}), XDG_CONFIG_HOME: join(root, 'config'), XDG_CACHE_HOME: join(root, 'cache'),
+  ...(windows ? { APPDATA: join(root, 'config'), LOCALAPPDATA: join(root, 'cache') } : {}),
+  DSH_HOME: join(root, 'harness'), DSH_DESKTOP_DIAGNOSTIC_FILE: diagnostic, DSH_TELEMETRY_DISABLED: '1' }
+delete childEnv.ELECTRON_RUN_AS_NODE
+const child = spawn(executable, ['--remote-debugging-port=0', `--user-data-dir=${join(root, 'electron')}`], {
   detached: !windows,
-  env: { ...process.env, XDG_CONFIG_HOME: join(root, 'config'), XDG_CACHE_HOME: join(root, 'cache'),
-    ...(windows ? { APPDATA: join(root, 'config'), LOCALAPPDATA: join(root, 'cache') } : {}),
-    DSH_HOME: join(root, 'harness'), DSH_DESKTOP_DIAGNOSTIC_FILE: diagnostic, DSH_TELEMETRY_DISABLED: '1' },
+  env: childEnv,
   stdio: ['ignore', 'pipe', 'pipe'],
 })
 let spawnFailure
@@ -68,16 +91,17 @@ try {
     })
   }
   let document
+  let sawFailure = ''
   while (Date.now() < deadline) {
     const result = await command('Runtime.evaluate', { expression: '({url:location.href,ready:document.readyState,boot:!!document.querySelector("[data-dsh-boot]"),controls:document.querySelectorAll("button,input,textarea,[role=button]").length,text:document.body?.innerText??"",width:innerWidth,height:innerHeight})', returnByValue: true })
     document = result.result.value
-    if (isDesktopUiReady(document)) break
+    if (isDesktopUiReady(document) && await workspaceOnDisk()) break
+    // A failure toast can appear and then be removed between polls; remember it
+    // so an expired error hint cannot pass the readiness gate.
+    sawFailure ||= FAILURE_TEXT.exec(document?.text ?? '')?.[0] ?? ''
     await delay(200)
   }
   await writeFile(join(output, 'renderer-state.json'), JSON.stringify(document ?? null, null, 2) + '\n')
-  if (!isDesktopUiReady(document)) throw new Error('Desktop UI did not finish plugin loading; see renderer-state.json')
-  const failure = await readFile(diagnostic, 'utf8').catch(error => { if (error.code === 'ENOENT') return ''; throw error })
-  if (failure) throw new Error(failure)
   await command('Page.enable')
   await command('Page.bringToFront')
   const screenshot = await command('Page.captureScreenshot', { format: 'png', fromSurface: windows })
@@ -86,9 +110,19 @@ try {
   await writeFile(join(output, 'desktop.png'), Buffer.from(screenshot.data, 'base64'))
   const raster = await inspectDesktopScreenshot(png)
   await writeFile(join(output, 'raster-state.json'), JSON.stringify(raster, null, 2) + '\n')
-  if (!raster.hasContent) throw new Error('Desktop screenshot has no rendered pixel variation')
+  const ready = isDesktopUiReady(document) && await workspaceOnDisk()
+  const failure = await readFile(diagnostic, 'utf8').catch(error => { if (error.code === 'ENOENT') return ''; throw error })
   await writeFile(join(output, 'desktop-shell.json'), JSON.stringify({ raster, platform: process.platform, arch: process.arch,
-    renderer: document.url.replace(/([?&]token=)[^&]+/gu, '$1[redacted]'), document, sandboxDisabled: false, modelCalled: false }, null, 2) + '\n')
+    renderer: document.url.replace(/([?&]token=)[^&]+/gu, '$1[redacted]'), document, ready,
+    defaultWorkspace: defaultWorkspaceDir ?? null, sandboxDisabled: false, modelCalled: false }, null, 2) + '\n')
+  if (!ready || sawFailure || failure || !raster.hasContent) {
+    const reasons = []
+    if (!ready) reasons.push('renderer still connecting, loading settings, no open workspace session or default workspace not created on disk')
+    if (sawFailure) reasons.push(`host report seen during boot: ${sawFailure}`)
+    if (failure) reasons.push(failure)
+    if (!raster.hasContent) reasons.push('screenshot has no rendered pixel variation')
+    throw new Error(`Packaged Desktop did not pass: ${reasons.join('; ')}; see desktop-shell.json and desktop.png`)
+  }
   console.log('Packaged Desktop renderer and PNG verified')
 } finally {
   socket?.close()

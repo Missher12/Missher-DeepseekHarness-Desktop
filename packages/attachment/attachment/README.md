@@ -83,7 +83,6 @@ The service family runs one admission-and-storage flow: every entry point enforc
 | [`src/admission.ts`](src/admission.ts) | Canonical-base64 enforcement and store delegation for encoded image and file uploads |
 | [`src/error.ts`](src/error.ts) | `AttachmentError` class and the `isImageAdmissionError` runtime subset |
 | [`src/brand.ts`](src/brand.ts) | `AttachmentId` branded opaque identifier |
-| — | No runtime invariant companion is published; this stateless seam owns types while implementations enforce immutable-store checks. |
 
 Upload adapters use `admitEncodedFile` or `admitFileStream` for ordinary files. Both reject supported image signatures with `IMAGE_REQUIRES_IMAGE_UPLOAD`, so image bytes must pass the image limits and decoder even when named as ordinary files. The browser-safe `./image-format` helper recognizes only routing signatures; it does not replace full image validation. Trusted raw storage methods still preserve arbitrary bytes.
 

@@ -3,8 +3,8 @@ import { Context } from '@deepseek-ai/cordis'
 import Loader, { type EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime, { type ToolDefinition } from '@deepseek-ai/dsh-tools'
-import { bindScopeParent, createScope, type Scope } from '@deepseek-ai/dsh-scope'
-import { mountPreset } from '@deepseek-ai/dsh-agent-preset-registry/src/mount.ts'
+import { createScope, type Scope } from '@deepseek-ai/dsh-scope'
+import { harness as presetHarness, declare, agentOn } from '../../../preset/agent-preset-registry/tests/harness.ts'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
@@ -114,18 +114,24 @@ describe('live plugin capability ownership', () => {
   })
 
   it('uses stable preset sources across different Agent identities and applies preset switching', async () => {
-    const { ctx, agent, inventory } = await harness()
-    const firstKey = {}, secondKey = {}
-    const first = await scoped(ctx, firstKey), second = await scoped(ctx, secondKey)
-    await mountPreset(first.ctx, 'first', [{ id: 'same', name: 'cordis:provider', config: { name: 'read' } }])
-    await mountPreset(second.ctx, 'second', [{ id: 'same', name: 'cordis:provider', config: { name: 'read' } }])
-    const binding = bindScopeParent(agent, firstKey)
+    const ctx = await presetHarness()
+    roots.push(ctx)
+    await ctx.plugin(Inventory)
+    await ctx.plugin(ReferenceResolver)
+    ctx.loader.builtins.provider = {
+      inject: ['tools'],
+      apply(inner: Context, config: { name: string }) { inner.tools.register(tool(config.name)) },
+    }
+    for (const id of ['first', 'second']) {
+      await declare(ctx, { id, plugins: [{ id: 'same', name: 'cordis:provider', config: { name: 'read' } }] })
+    }
+    const agent = await agentOn(ctx, 'session-a', 'first')
+    const inventory = ctx.pluginInventory
     const row = (await inventory.candidates(agent, '', signal))[0]!
     expect(row.presetId).toBe('first')
-    const fork = { id: 'fork' as SessionId, ctx } as Agent
-    bindScopeParent(fork, firstKey)
+    const fork = await agentOn(ctx, 'fork', 'first')
     expect((await inventory.candidates(fork, '', signal))[0]?.id).toBe(row.id)
-    binding.rebind(secondKey)
+    await ctx.agentPresets.recompose(agent.ctx, 'second')
     expect((await inventory.candidates(agent, '', signal))[0]?.presetId).toBe('second')
     expect(() => inventory.resolveReferences(agent, [row.id])).toThrow(/unavailable/)
   })

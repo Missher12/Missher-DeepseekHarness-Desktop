@@ -10,7 +10,7 @@ import {
 } from './desktop-auto-update-environment.mjs'
 import { desktopTargetBuildPaths } from './desktop-build-paths.mjs'
 import { packageMacOSArtifacts, type DesktopPrepackagedArtifact } from './package-macos.ts'
-import { loadDesktopPackageEnvironment, validateDesktopPackageEnvironment } from './desktop-package-environment.mjs'
+import { loadDesktopPackageEnvironment, localMacOSPackageEnvironment, validateDesktopPackageEnvironment } from './desktop-package-environment.mjs'
 import { createPackagingRun, recordPackagingEvent } from './packaging-run.mjs'
 import { withWindowsSigningStage } from './windows-signing-stage.mjs'
 import { prepareWindowsSignatureCacheDirectory, resolveWindowsSignatureCacheDirectory } from './windows-signature-cache-directory.mjs'
@@ -96,9 +96,9 @@ export function withoutWindowsSigningEnvironment(environment: NodeJS.ProcessEnv)
 }
 
 /**
- * Select signing and NSIS-compatible archive filters for electron-builder.
+ * Select signing mode and strip unsigned-build credentials for packaging subprocesses.
  * @param environment - Target packaging environment.
- * @param unsigned - Whether to create a local unsigned Windows or Intel macOS artifact.
+ * @param unsigned - Whether to create a local artifact without release signing or notarization.
  * @returns Packaging environment without certificate inputs for unsigned builds.
  */
 export function desktopElectronBuilderEnvironment(environment: NodeJS.ProcessEnv, unsigned: boolean): NodeJS.ProcessEnv {
@@ -108,7 +108,7 @@ export function desktopElectronBuilderEnvironment(environment: NodeJS.ProcessEnv
   if (!unsigned) return selected
   return {
     ...Object.fromEntries(Object.entries(withoutWindowsSigningEnvironment(selected))
-      .filter(([name]) => !/^(?:(?:WIN_)?CSC_|APPLE_|DSH_DESKTOP_MACOS_(?:SIGNING_IDENTITY|TEAM_ID)$)/iu.test(name))),
+      .filter(([name]) => !/^(?:(?:WIN_)?CSC_|APPLE_|DSH_DESKTOP_MACOS_(?:SIGNING_|TEAM_ID$))/iu.test(name))),
     CSC_IDENTITY_AUTO_DISCOVERY: 'false',
     DSH_DESKTOP_UNSIGNED: '1',
   }
@@ -203,6 +203,8 @@ interface DesktopPackageInvocation {
   readonly directory: boolean
   readonly prepareOnly: boolean
   readonly unsigned: boolean
+  /** Read this distribution's explicit platform configuration even for unsigned macOS. */
+  readonly community: boolean
   readonly check: boolean
   /** Build identifier to publish under, when this build does not publish the product version. */
   readonly requestedBuildVersion: string | undefined
@@ -235,15 +237,14 @@ export function parseDesktopPackageInvocation(
       dir: { type: 'boolean', default: false },
       'prepare-only': { type: 'boolean', default: false },
       unsigned: { type: 'boolean', default: false },
+      community: { type: 'boolean', default: false },
       check: { type: 'boolean', default: false },
       'build-version': { type: 'string' },
     },
   })
+  if (values.community && !values.unsigned) throw new Error('desktop package: --community requires --unsigned')
   if (positionals.length > 1) throw new Error('desktop package: expected at most one target')
   const name = positionals[0] ?? hostTargetName(hostPlatform, hostArch)
-  if (values.unsigned && name !== 'win-x64' && name !== 'mac-x64' && name !== 'linux-x64') {
-    throw new Error('desktop package: --unsigned requires win-x64 or mac-x64 or linux-x64')
-  }
   if (values.unsigned && values['prepare-only']) throw new Error('desktop package: --unsigned cannot use --prepare-only')
   if (name === 'linux-x64' && !values.unsigned && !values['prepare-only']) {
     throw new Error('desktop package: Linux downloads require --unsigned; no official Linux update feed is configured')
@@ -257,6 +258,7 @@ export function parseDesktopPackageInvocation(
     directory: values.dir,
     prepareOnly: values['prepare-only'],
     unsigned: values.unsigned,
+    community: values.community,
     check: values.check,
     requestedBuildVersion,
   }
@@ -344,7 +346,9 @@ async function resolveRequestedBuildVersion(
 async function main(): Promise<void> {
   const invocation = parseDesktopPackageInvocation(process.argv.slice(2))
   const { target } = invocation
-  const environment = loadDesktopPackageEnvironment(target.platform)
+  const environment = target.platform === 'darwin' && invocation.unsigned && !invocation.community
+    ? localMacOSPackageEnvironment()
+    : loadDesktopPackageEnvironment(target.platform)
   const productVersion = packageVersion(join(APP_ROOT, 'package.json'), 'desktop package')
   // Release settings come from the target dotenv file alone, so the version this run publishes is an
   // argument; the environment variable below only carries it to the child processes that build.
@@ -394,6 +398,11 @@ async function main(): Promise<void> {
     else process.env.DSH_DESKTOP_PACKAGING_RUN_DIR = previousDirectory
     run.finish(success)
   }
+  if (success && target.platform === 'darwin' && !invocation.directory && !invocation.prepareOnly) {
+    const paths = desktopTargetBuildPaths(target.name)
+    const filename = `deepseek-harness-${buildVersion}-mac-${target.arch}${invocation.unsigned ? '-unsigned' : ''}.dmg`
+    console.log(`DMG: ${join(invocation.unsigned ? paths.unsignedArtifacts : paths.artifacts, filename)}`)
+  }
 }
 
 /**
@@ -413,7 +422,9 @@ export async function packageTarget(
   const journal = target.platform === 'darwin' ? process.env.DSH_DESKTOP_PACKAGING_RUN_DIR : undefined
   const proxyEvent = (status: string) => { if (journal) recordPackagingEvent(journal, { type: 'notarization-proxy', status }) }
   const mac = target.platform === 'darwin' ? resolveMacOSPackageSettings(environment) : undefined
-  const packArguments = mac === undefined ? [] : ['--concurrency', String(mac.packConcurrency)]
+  const packArguments = mac === undefined
+    ? target.platform === 'linux' ? ['--concurrency', '2'] : []
+    : ['--concurrency', String(mac.packConcurrency)]
   const buildPaths = desktopTargetBuildPaths(target.name)
   const releaseRecordPath = join(buildPaths.artifacts, target.name === 'linux-x64' ? 'linux-x64-release.json' : desktopBuildRecordFilename(target.name))
   if (!invocation.prepareOnly && !invocation.unsigned) {
@@ -487,18 +498,7 @@ export async function packageTarget(
   await execute(['run', 'prepare:dsh', ...(signPrimaryRuntime ? ['--defer-runtime-smoke'] : [])], downloadEnv)
   if (signPrimaryRuntime) await execute(['run', 'sign:primary-runtime', '--dsh'], electronBuilderEnv)
   if (invocation.prepareOnly) return
-  if (target.platform === 'darwin' && invocation.unsigned) {
-    await execute(desktopElectronBuilderArguments(target, true), electronBuilderEnv)
-    await execute(['exec', 'tsx', 'scripts/smoke-packaged-runtime.ts', '--unsigned'], targetEnv)
-    if (!invocation.directory) {
-      const appPath = join(buildPaths.unsignedArtifacts, 'mac', 'DeepSeek Harness.app')
-      for (const format of ['dmg', 'zip'] as const) {
-        await execute(desktopElectronBuilderArguments(target, false, {
-          format, appPath, output: buildPaths.unsignedArtifacts,
-        }), electronBuilderEnv)
-      }
-    }
-  } else if (target.platform === 'darwin' && !invocation.directory) {
+  if (target.platform === 'darwin' && !invocation.unsigned && !invocation.directory) {
     await execute([
       ...desktopElectronBuilderArguments(target, true),
       '--config.mac.notarize=false',
@@ -511,7 +511,7 @@ export async function packageTarget(
       artifactsRoot: buildPaths.artifacts,
       environment: electronBuilderEnv,
     }, artifact => execute(desktopElectronBuilderArguments(target, false, artifact), electronBuilderEnv)), undefined, undefined, proxyEvent)
-  } else if (target.platform === 'darwin') {
+  } else if (target.platform === 'darwin' && !invocation.unsigned) {
     await execute([...desktopElectronBuilderArguments(target, true), '--config.mac.notarize=false'], electronBuilderEnv)
     await execute(['exec', 'tsx', 'scripts/smoke-packaged-runtime.ts'], targetEnv)
     const appPath = join(buildPaths.artifacts, target.arch === 'arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness.app')
@@ -522,9 +522,7 @@ export async function packageTarget(
     await execute(['exec', 'tsx', 'scripts/smoke-packaged-runtime.ts', ...(invocation.unsigned ? ['--unsigned'] : [])], targetEnv)
   }
   if (!invocation.directory && !invocation.unsigned) writeReleaseRecord(target, electronBuilderEnv, buildPaths.artifacts)
-  if (journal) recordPackagingEvent(journal, {
-    type: 'artifacts', directory: invocation.unsigned ? buildPaths.unsignedArtifacts : buildPaths.artifacts,
-  })
+  if (journal) recordPackagingEvent(journal, { type: 'artifacts', directory: invocation.unsigned ? buildPaths.unsignedArtifacts : buildPaths.artifacts })
 }
 
 if (process.argv[1] !== undefined && import.meta.filename === resolve(process.argv[1])) await main()

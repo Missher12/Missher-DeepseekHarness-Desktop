@@ -59,7 +59,7 @@ This pairing is not a second source of business truth. Host controllers decide d
 
 The `@` reference menu separates Plugins, Sessions, and Files with category filters in `ui-input-trigger`; `ui-reference` supplies stable category identifiers. Filtering changes only visible candidates and selection, preserving the draft and Host reference validation.
 
-Web and desktop share the [Coding Tools preference](../../packages/client/ui-settings/README.md#use-this-package). It controls diagnostic Views, new-session preset selection, changed-file cards, and the builtin HTML preview policy without changing Session records.
+Web and desktop share the [Coding Tools preference](../../packages/client/ui-settings/README.md#use-this-package). It controls diagnostic Views, [available preset choices](../../packages/client/ui-agent-preset/README.md), changed-file cards, and the builtin HTML preview policy without changing Session records.
 
 `ui-session` installs the Session scope adapter and publishes `useSessions`, `useSessionStatus`, `useSessionRetainInfo`, `useSession`, `sessionId`, and `useProjection`. `SessionProvider` inherits an outer binding or binds an explicit `SessionReference`, so concurrent subtrees can target different Sessions. Domain adapters add further standard sources without putting React hooks on the model objects.
 

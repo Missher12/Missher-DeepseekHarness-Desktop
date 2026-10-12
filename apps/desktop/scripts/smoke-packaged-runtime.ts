@@ -12,9 +12,6 @@ const { values } = parseArgs({ options: { unsigned: { type: 'boolean', default: 
 const target = resolveDesktopBuildTarget()
 const windows = target === 'win-x64'
 const linux = target === 'linux-x64'
-if (values.unsigned && !windows && !linux && target !== 'mac-x64') {
-  throw new Error('desktop smoke: unsigned artifacts require Windows or Intel macOS')
-}
 const artifacts = values.unsigned ? paths.unsignedArtifacts : paths.artifacts
 const application = linux ? join(artifacts, 'linux-unpacked') : windows ? join(artifacts, 'win-unpacked')
   : join(artifacts, target === 'mac-arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness.app', 'Contents')

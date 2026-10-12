@@ -2,7 +2,7 @@
 import { FiberState, type Context, type Fiber } from '@deepseek-ai/cordis'
 import type { Entry } from '@deepseek-ai/cordis-plugin-loader'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { livePresetMounts } from '@deepseek-ai/dsh-agent-preset-registry'
+import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 import type {} from '@deepseek-ai/dsh-tools'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import { formatPluginReferenceMention, pluginInstanceId } from './reference.ts'
@@ -34,17 +34,16 @@ export function readPluginCapabilities(
   const tools = ctx.get('agentPresets')?.serviceFor(agent, 'tools') ?? ctx.get('tools')
   if (tools === undefined) throw new RemoteError('gateway/internal', 'The session tool registry is unavailable', {})
   const catalog = tools.catalog(agent)
-  const mounts = livePresetMounts(ctx.root.fiber)
   const hostEntries = new Set(ctx.loader.entries())
   const rows = new Map<string, PluginCapabilityCandidate>()
   for (const { definition, context } of catalog.registrations) {
     const entry = entryOf(context.fiber)
     if (entry === undefined || entry.options.group || entry.disabled
       || entry.fiber?.state !== FiberState.ACTIVE || context.fiber.state !== FiberState.ACTIVE) continue
-    const mount = mounts.find(item => item.tree === entry.parent.tree)
+    const presetId = ctx.get('agentPresets')?.presetForTree(agent.ctx, entry.parent.tree)
     // Unknown ad-hoc trees cannot claim a stable profile or preset namespace.
-    if (mount === undefined && !hostEntries.has(entry)) continue
-    const origin = mount !== undefined ? ['preset', mount.presetId] : 'host'
+    if (presetId === undefined && !hostEntries.has(entry)) continue
+    const origin = presetId !== undefined ? ['preset', presetId] : 'host'
     const id = pluginInstanceId(JSON.stringify([entry.options.name, entry.id, origin]))
     const previous = rows.get(id)
     const capability = {
@@ -65,7 +64,7 @@ export function readPluginCapabilities(
       moduleName: entry.options.name,
       entryId: entry.id as PluginEntryId,
       ...meta === undefined ? {} : { meta },
-      ...mount === undefined ? {} : { presetId: mount.presetId },
+      ...presetId === undefined ? {} : { presetId: presetId },
       capabilities: capabilities.length < config.toolLimit ? [...capabilities, capability] : capabilities,
       capabilityCount: (previous?.capabilityCount ?? 0) + 1,
     })

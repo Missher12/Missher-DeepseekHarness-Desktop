@@ -21,6 +21,8 @@ import Sessions, { SessionId } from '@deepseek-ai/dsh-session'
 import Agents from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import Projections from '@deepseek-ai/dsh-session-projection'
+import LocalFileSystem from '@deepseek-ai/dsh-fs-local'
+import WorkingDirectory from '@deepseek-ai/dsh-working-directory'
 import { expect, vi } from 'vitest'
 import type { BrowserMcpConfig } from '../src/mcp.ts'
 
@@ -83,6 +85,7 @@ export async function verifyMcpBrowser(
       ['sessions', Sessions], ['agents', Agents], ['loop', AgentLoop], ['projections', Projections], ['browser', provider],
       ['attachments', AttachmentLocal],
       ['model', { inject: ['llm'], apply(inner: Context) { inner.effect(() => inner.llm.registerAdapter(['local-test'], new ImageRoute())) } }],
+      ['fs', LocalFileSystem], ['workingDirectory', WorkingDirectory],
     ])
     const configPath = join(root, 'cordis.yml')
     await writeFile(configPath, JSON.stringify([...modules.keys()].map(name => ({ id: name, name, config: name === 'loop' ? { agents: [] } : name === 'browser' ? browserConfig : name === 'attachments' ? { dshHome: root } : {} }))))

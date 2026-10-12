@@ -6,9 +6,10 @@ import { dump } from 'js-yaml'
 
 /**
  * Allocate a private listener with request barriers and no remote publication.
+ * @param {{ extension?: string, feed?: string }} options Platform-specific inert artifact and channel names.
  * @returns {Promise<object>} Feed URL, scenario controls, observations, and awaited disposal.
  */
-export async function createUpdateServer() {
+export async function createUpdateServer({ extension = 'exe', feed = 'nightly.yml' } = {}) {
   const payload = Buffer.alloc(256 * 1024, 0x5a)
   const sha512 = createHash('sha512').update(payload).digest('base64')
   const requests = []
@@ -36,18 +37,18 @@ export async function createUpdateServer() {
         } : { code: 0, data: { biz_code: 0, biz_data: null } }))
         return
       }
-      if (path === '/nightly.yml') {
+      if (path === `/${feed}`) {
         if (selectedMode === 'feed-stall') return
         if (selectedMode === 'feed-404') { response.writeHead(404).end(); return }
         if (selectedMode === 'feed-408') { response.writeHead(408).end(); return }
         if (selectedMode === 'invalid-yaml') { response.end('files: ['); return }
         if (selectedMode === 'hold-check') { arrived.resolve(); await selectedGate.promise }
         response.setHeader('Content-Type', 'application/yaml')
-        response.end(dump({ version, files: [{ url: `${origin}/payload.exe`, size: payload.length, sha512 }],
-          path: 'payload.exe', sha512, releaseDate: '2026-09-10T00:00:00.000Z' }))
+        response.end(dump({ version, files: [{ url: `${origin}/payload.${extension}`, size: payload.length, sha512 }],
+          path: `payload.${extension}`, sha512, releaseDate: '2026-09-10T00:00:00.000Z' }))
         return
       }
-      if (path !== '/payload.exe' || selectedMode === 'download-404') { response.writeHead(404).end(); return }
+      if (path !== `/payload.${extension}` || selectedMode === 'download-404') { response.writeHead(404).end(); return }
       response.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Length': payload.length })
       if (selectedMode === 'download-stall') { response.write(payload.subarray(0, 1024)); return }
       if (selectedMode === 'corrupt') { response.end(Buffer.alloc(payload.length, 0x21)); return }

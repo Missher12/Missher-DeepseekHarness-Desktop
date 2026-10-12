@@ -12,7 +12,7 @@ export interface UpdateDialogView {
   readonly revision: number
   readonly locale: string
   readonly title: string
-  readonly message: string
+  message: string
   readonly detail: string
   readonly buttons: readonly string[]
   readonly cancelId: number
@@ -115,6 +115,15 @@ export class DesktopUpdateDialog {
       window.webContents.once('render-process-gone', failed)
       void window.loadURL(page).catch(failed)
     })
+  }
+
+  /** Refresh the current transfer message without replacing its cancellation action.
+   * @param message - Localized progress text from the main process.
+   */
+  updateMessage(message: string): void {
+    if (this.active === undefined) return
+    this.active.view.message = message
+    this.active.window.webContents.send(UPDATE_DIALOG_IPC.changed, this.active.view)
   }
 
   /** Cancel the displayed prompt without authorizing any operation. */

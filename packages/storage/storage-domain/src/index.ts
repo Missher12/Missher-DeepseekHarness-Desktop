@@ -180,8 +180,7 @@ export class DomainFacility {
   }
 
   /**
-   * Look up an open domain by name, untyped. Diagnostic surface (the package
-   * invariant cross-checks change events against live domain state); typed
+   * Look up an open domain by name, untyped. Diagnostic surface; typed
    * consumers hold the handle returned by {@link open}.
    * @param name - Domain name.
    * @returns the open domain runtime, or `undefined` when not open.
@@ -258,7 +257,7 @@ export function apply(ctx: Context, config: Config): Promise<void> {
       const unmount = domainCtx.storage.mount('domain', facility)
       return async () => {
         // Close leftovers before unmounting: draining writes still emit
-        // domain/changed, whose invariant resolves the facility through the hub.
+        // domain/changed.
         await facility.closeAll()
         unmount()
       }

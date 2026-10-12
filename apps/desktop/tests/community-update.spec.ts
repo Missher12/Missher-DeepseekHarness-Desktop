@@ -3,19 +3,19 @@ import { checkCommunityRelease } from '../src/community-update.ts'
 
 it('selects the highest published Harness release including RCs and constructs a trusted notes URL', async () => {
   const request = vi.fn<typeof fetch>(async () => Response.json([
-    { tag_name: 'dsh-v0.2.0-rc.2', draft: false, html_url: 'https://untrusted.invalid' },
-    { tag_name: 'dsh-v0.2.0-rc.1', draft: false },
-    { tag_name: 'dsh-v9.0.0', draft: true },
+    { tag_name: 'desktop-v0.2.0-rc.2', draft: false, html_url: 'https://untrusted.invalid' },
+    { tag_name: 'desktop-v0.2.0-rc.1', draft: false },
+    { tag_name: 'desktop-v9.0.0', draft: true },
     { tag_name: 'other-v9.0.0', draft: false },
-    { tag_name: 'dsh-vbroken', draft: false },
+    { tag_name: 'desktop-vbroken', draft: false },
     null,
   ]))
   expect(await checkCommunityRelease('0.2.0-rc.1', request)).toEqual({
     version: '0.2.0-rc.2', newer: true,
-    url: 'https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.0-rc.2',
+    url: 'https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.0-rc.2',
   })
   const [url, init] = request.mock.calls[0]!
-  expect(url).toContain('/deepseek-ai/deepseek-harness/releases?')
+  expect(url).toContain('/Missher12/Missher-DeepseekHarness-Desktop/releases?')
   expect(init?.signal).toBeInstanceOf(AbortSignal)
   expect((await checkCommunityRelease('0.3.0', request)).newer).toBe(false)
 })

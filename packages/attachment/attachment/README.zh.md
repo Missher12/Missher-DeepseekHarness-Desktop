@@ -83,7 +83,6 @@ kind: "package-reference"
 | [`src/admission.ts`](src/admission.ts) | 对编码图片和文件上传强制执行规范 base64 并委托存储 |
 | [`src/error.ts`](src/error.ts) | `AttachmentError` 类与 `isImageAdmissionError` 运行时子集 |
 | [`src/brand.ts`](src/brand.ts) | `AttachmentId` 带类型标记的不透明标识符 |
-| — | 不发布运行时不变式伴生入口；这个无状态 seam 承载类型，实现则负责强制执行不可变存储检查。 |
 
 普通文件上传适配器使用 `admitEncodedFile` 或 `admitFileStream`。两者都会以 `IMAGE_REQUIRES_IMAGE_UPLOAD` 拒绝受支持的图片签名，因此即使使用普通文件名，图片字节仍须通过图片限额与解码校验。浏览器安全的 `./image-format` 辅助函数只识别路由签名，不替代完整图片验证。可信原始存储方法仍逐字节保存任意数据。
 

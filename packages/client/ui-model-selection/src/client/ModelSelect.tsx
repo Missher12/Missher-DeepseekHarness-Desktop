@@ -121,7 +121,7 @@ export function ModelSelect(
   const effectiveEffort = state.current?.reasoningEffort ?? reasoning?.defaultEffort
   const invalidEffort = currentChoice !== undefined && state.current?.reasoningEffort !== undefined
     && !reasoning?.efforts.some(level => level.id === state.current?.reasoningEffort)
-  const effortLabel = invalidEffort ? t('effort.invalid', { effort: state.current?.reasoningEffort ?? '' }) : reasoning === undefined
+  const effortLabel = currentChoice === undefined ? undefined : invalidEffort ? t('effort.invalid', { effort: state.current?.reasoningEffort ?? '' }) : reasoning === undefined
     ? state.retainedEffort
     : effectiveEffort === undefined
       ? t('effort.providerDefault')
@@ -246,8 +246,8 @@ export function ModelSelect(
     triggerRef.current?.focus()
     setQuery('')
     setHighlightedIndex(null)
-    if (state.current === null) paneFocus.current = 'drill'
-    setPane(state.current === null ? 'model' : 'root')
+    if (currentChoice === undefined) paneFocus.current = 'drill'
+    setPane(currentChoice === undefined ? 'model' : 'root')
     setOpen(true)
     reload()
   }
@@ -299,7 +299,7 @@ export function ModelSelect(
     if (event.key === 'Escape' && open) {
       event.preventDefault()
       // Escape backs out of a drilled pane first, then closes.
-      if (pane !== 'root' && state.current !== null) back(pane)
+      if (pane !== 'root' && currentChoice !== undefined) back(pane)
       else close(true)
       return
     }
@@ -327,7 +327,7 @@ export function ModelSelect(
     if (event.key === 'Tab') {
       if (event.shiftKey) {
         event.preventDefault()
-        if (pane !== 'root' && state.current !== null) back(pane)
+        if (pane !== 'root' && currentChoice !== undefined) back(pane)
         else close(true)
         return
       }
@@ -413,15 +413,15 @@ export function ModelSelect(
     submit(selection)
   }
 
-  const waiting = state.current === null && state.status === 'loading'
+  const waiting = currentChoice === undefined && state.status === 'loading'
   const modelLabel = waiting
     ? t('trigger.loading')
     : currentChoice?.model.name
-      ?? (state.current === null ? t('trigger.fallback') : `${state.current.provider}/${state.current.model}`)
+      ?? t('trigger.fallback')
   const triggerLabel = effortLabel === undefined ? modelLabel : `${modelLabel} · ${effortLabel}`
   const triggerAria = waiting
     ? t('trigger.loading')
-    : state.current === null
+    : currentChoice === undefined
       ? t('trigger.selectAria')
       : effortLabel === undefined
         ? t('trigger.aria', { model: modelLabel })

@@ -1,0 +1,66 @@
+name: Missher Intel Mac Desktop package
+
+on:
+  push:
+    branches: [codex/desktop-alpha2-updater-20261012-recovered]
+  workflow_dispatch:
+    inputs:
+      build_version:
+        description: Explicit version shared with the Linux build
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: missher-macos-intel-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: macos-15-intel
+    timeout-minutes: 120
+    env:
+      DSH_TELEMETRY_DISABLED: '1'
+      DSH_GATE_CONCURRENCY: '2'
+      DSH_REQUESTED_BUILD_VERSION: ${{ inputs.build_version || '0.2.1-alpha.2.20261012.1' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.28.5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check Intel packaging boundaries
+        run: pnpm exec vitest run apps/desktop/tests/community-package.spec.ts apps/desktop/tests/package-target.spec.ts apps/desktop/tests/desktop-package-environment.spec.ts apps/desktop/tests/macos-signature.spec.ts --maxWorkers=2
+      - name: Build isolated community Intel DMG
+        run: |
+          cp apps/desktop/.env.community-macos.example apps/desktop/.env.macos
+          pnpm run package:desktop:mac:x64:unsigned -- --community --build-version "$DSH_REQUESTED_BUILD_VERSION"
+      - name: Verify DMG and actual renderer
+        run: |
+          artifacts=apps/desktop/.desktop-build/targets/mac-x64/unsigned-artifacts
+          hdiutil verify "$artifacts/deepseek-harness-$DSH_REQUESTED_BUILD_VERSION-mac-x64-unsigned.dmg"
+          node apps/desktop/scripts/smoke-community-shell.mjs "$artifacts/mac/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness" desktop-verification
+          shasum -a 256 "$artifacts/"*.dmg > desktop-verification/SHA256SUMS
+      - name: Preserve installers and verification
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: missher-mac-x64-verified
+          compression-level: 0
+          path: |
+            apps/desktop/.desktop-build/targets/mac-x64/unsigned-artifacts/*.dmg
+            desktop-verification/
+      - name: Preserve failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: missher-mac-x64-diagnostics
+          path: |
+            apps/desktop/.desktop-build/packaging-runs/
+            desktop-verification/

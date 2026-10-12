@@ -57,13 +57,13 @@ export function createElectronBuilderConfig(
   const resolvedArch = env.DSH_DESKTOP_TARGET_ARCH ?? hostArch
   // Community distributions have no official mandatory-update or auto-install service.
   const community = isCommunityDesktopBuild(env)
-  const policy = resolvedPlatform === 'linux' || community ? undefined : resolveDesktopPolicyEnvironment(env)
+  const policy = resolvedPlatform === 'linux' || community || (resolvedPlatform === 'darwin' && env.DSH_DESKTOP_UNSIGNED === '1') ? undefined : resolveDesktopPolicyEnvironment(env)
   if (env.DSH_DESKTOP_UNSIGNED !== undefined && !['0', '1'].includes(env.DSH_DESKTOP_UNSIGNED)) {
     throw new Error('desktop package: DSH_DESKTOP_UNSIGNED must be 0 or 1')
   }
   const unsigned = env.DSH_DESKTOP_UNSIGNED === '1'
   if (community && !unsigned) throw new Error('desktop package: community distributions require unsigned packaging')
-  if (unsigned && resolvedPlatform !== 'linux' && resolvedPlatform !== 'win32' && !(resolvedPlatform === 'darwin' && resolvedArch === 'x64')) {
+  if (unsigned && resolvedPlatform !== 'linux' && resolvedPlatform !== 'win32' && resolvedPlatform !== 'darwin') {
     throw new Error('desktop package: unsigned builds require Windows or Intel macOS')
   }
   if (resolvedPlatform === 'linux' && !unsigned) throw new Error('desktop package: Linux downloads require unsigned packaging')
@@ -97,7 +97,9 @@ export function createElectronBuilderConfig(
   if (windowsSigner !== undefined) {
     installWindowsNsisBootstrapSigner({ sign: windowsSigner })
   }
-  const update = unsigned ? undefined : resolveDesktopAutoUpdateConfig(env, resolvedPlatform, resolvedArch)
+  const update = community && resolvedPlatform === 'linux'
+    ? { publicUrl: 'https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-updates-linux-x64/' }
+    : unsigned ? undefined : resolveDesktopAutoUpdateConfig(env, resolvedPlatform, resolvedArch)
   if (preparedRuntime !== undefined) buildPaths.dsh = preparedRuntime
   // electron-builder merges extraMetadata into the packaged manifest, so a build version here reaches
   // the artifact names, the update feed, and the installed app.getVersion() the updater compares against.
@@ -109,13 +111,16 @@ export function createElectronBuilderConfig(
     protocols: [{ name: 'DeepSeek Harness', schemes: ['dsh'] }],
     extraMetadata: {
       dshDesktopAppId: appId,
-      dshMandatoryUpdatePolicy: policy,
+      ...community ? { dshCommunityDistribution: true } : {},
+      ...(policy === undefined ? {} : { dshMandatoryUpdatePolicy: policy }),
       ...buildVersion === productVersion ? {} : { version: buildVersion },
       ...packaged === undefined ? {} : { dshBuildCommit: packaged.commit, dshBuildDirty: packaged.dirty },
     },
     productName: 'DeepSeek Harness',
     // Unsigned builds carry their own suffix so a shared file can never pass for a release artifact.
-    artifactName: `deepseek-harness-\${version}-\${os}-\${arch}${unsigned ? '-unsigned' : ''}.\${ext}`,
+    artifactName: resolvedPlatform === 'linux'
+      ? `deepseek-harness-\${version}-linux-${resolvedArch}-unsigned.\${ext}`
+      : `deepseek-harness-\${version}-\${os}-\${arch}${unsigned ? '-unsigned' : ''}.\${ext}`,
     directories: { output: unsigned ? buildPaths.unsignedArtifacts : buildPaths.artifacts },
     // Electron's ASAR lstatSync returns null for missing paths instead of Node's undefined.
     // Linux Office probes optional native engines before WASM; keep real filesystem semantics.
@@ -160,17 +165,18 @@ export function createElectronBuilderConfig(
       icon: fileURLToPath(new URL('../resources/icon-macos.png', import.meta.url)),
       category: 'public.app-category.developer-tools',
       // macOS matches the application locale against this bundle, not Electron Framework resources.
-      extendInfo: { CFBundleLocalizations: ['en', 'zh_CN'] },
-      identity: unsigned ? null : macOSSigning?.signingIdentity,
+      extendInfo: { CFBundleLocalizations: ['en', 'zh_CN'],
+        NSMicrophoneUsageDescription: 'DeepSeek Harness uses your microphone to transcribe speech into message drafts.' },
+      // Ad-hoc signing keeps the modified Electron executable runnable without a Developer ID.
+      identity: unsigned ? '-' : macOSSigning?.signingIdentity,
       forceCodeSigning: !unsigned,
-      hardenedRuntime: !unsigned,
-      extendInfo: { NSMicrophoneUsageDescription: 'DeepSeek Harness uses your microphone to transcribe speech into message drafts.' },
+      hardenedRuntime: true,
       entitlements: fileURLToPath(new URL('./macos-entitlements.plist', import.meta.url)),
       entitlementsInherit: fileURLToPath(new URL('./macos-entitlements.plist', import.meta.url)),
-      // ASAR-unpacked native runtime files are pre-signed; PAK resources are sealed by their enclosing bundle.
+      // Prepared runtime files retain their signatures; PAK resources are sealed by their enclosing bundle.
       signIgnore: ['/Contents/Resources/app\\.asar\\.unpacked/dsh(?:/|$)', '/Contents/Resources/runtime/primary-runtime(?:/|$)', '\\.pak$'],
       notarize: !unsigned,
-      target: ['dmg', 'zip'],
+      target: unsigned ? ['dmg'] : ['dmg', 'zip'],
     },
     dmg: {
       sign: !unsigned,
