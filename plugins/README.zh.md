@@ -18,10 +18,10 @@
 | [会话桥接](https://github.com/Missher12/Missher-DSH-Session-Bridge) | 会话 ID、跨会话投递、临时工作区及归档会话删除 | 侧栏会话菜单；新会话 → 工作区选择器 | [发布与下载](https://github.com/Missher12/Missher-DSH-Session-Bridge/releases) |
 | [思考强度](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) | 思考滑块、配色及每个模型的档位设置 | 模型设置；思考控制 | [发布与下载](https://github.com/Missher12/Missher-DSH-Reasoning-Effort/releases) |
 | [Project Ops 项目任务](https://github.com/Missher12/Missher-DSH-Project-Ops) | 项目任务；0.4 候选增加 PLAN.md 开发方案与 READY.md 交付记录 | 0.4 候选中：会话标题栏 → Project Ops | [发布与下载](https://github.com/Missher12/Missher-DSH-Project-Ops/releases) |
-| [MSE 持久学习](https://github.com/Missher12/Missher-MSE-Learning) | 在任务范围内学习和召回；本轮升级仍在开发 | MSE 设置和命令 | [发布与下载](https://github.com/Missher12/Missher-MSE-Learning/releases) |
+| [MSE 持久学习](https://github.com/Missher12/Missher-MSE-Learning) | 在任务范围内学习、召回和复盘；alpha.19 源码已上传 | MSE 设置和命令 | [发布与下载](https://github.com/Missher12/Missher-MSE-Learning/releases) |
 | [电脑与浏览器](https://github.com/Missher12/Missher-DSH-Computer-Browser) | 浏览器与电脑控制；开发已暂停 | 浏览器侧栏及电脑工具 | [发布与下载](https://github.com/Missher12/Missher-DSH-Computer-Browser/releases) |
 
-[发布清单](../distribution/plugin-set.json)和[仓库清单](../cordis-repositories.json)固定已发布的插件合集，不是未发布候选的实时列表。项目开发期间，发布链接中仍可能是旧包。Project Ops 0.4 尚未发布；MSE 已发布的 alpha.18 在新宿主有原生持久化限制，替代包尚未完成；电脑与浏览器暂停中的原生流程也未在新宿主验收。已有检查只对应各自版本和范围。
+[发布清单](../distribution/plugin-set.json)和[仓库清单](../cordis-repositories.json)固定已发布的插件合集，不追踪每次源码更新。发布链接中仍可能是旧包。Project Ops 0.4 和 MSE alpha.19 源码已上传各自仓库，新版 Release 附件尚未发布。MSE 已通过的检查和剩余限制见其[交付说明](https://github.com/Missher12/Missher-MSE-Learning/blob/main/PUBLICATION.md)。电脑与浏览器暂停中的原生流程未在新宿主验收。已有检查只对应各自版本和范围。
 
 ## 私有与独立项目
 
