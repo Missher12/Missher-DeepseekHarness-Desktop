@@ -20,7 +20,7 @@ Intel 芯片的 Mac 选择 **Intel Mac**；使用 Intel/AMD 64 位处理器的 U
 | **Ubuntu x64** | [DEB 安装包（推荐）](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2-missher.20261012.1/deepseek-harness-0.2.1-alpha.2.20261012.1-linux-x64-unsigned.deb) · [版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2-missher.20261012.1) | Ubuntu 24.04 x64 |
 | **Ubuntu x64 便携格式** | [AppImage](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2-missher.20261012.1/deepseek-harness-0.2.1-alpha.2.20261012.1-linux-x64-unsigned.AppImage) | 已构建；未单独完成 AppImage 启动验收 |
 
-当前社区正式发布为 **0.2.1-alpha.2.20261012.1**，基于官方 0.2.1-alpha.2，包含归档删除和模型行内设置所需的 Missher 扩展。请从同一发布页下载[七插件合集及精确包清单](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2-missher.20261012.1)。合集不包含 Media、独立 Obsidian 和已暂停的电脑与浏览器插件。
+当前社区正式发布为 **0.2.1-alpha.2.20261012.1**，基于官方 0.2.1-alpha.2，包含归档删除和模型行内设置所需的 Missher 扩展。[七插件合集及精确包清单](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2-missher.20261012.1)保留桌面发布时的版本；安装插件后续更新，请使用[插件目录](plugins/README.zh.md)中的“最新正式版”入口。合集不包含 Media、独立 Obsidian 和已暂停的电脑与浏览器插件。
 
 Ubuntu DEB 已通过安装及桌面启动检查；Intel Mac DMG 已通过原生打包、完整性、隔离工作区和实际界面检查。[验证说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2-missher.20261012.1)列出准确范围，这些检查不代表每种模型或插件流程都已验收。桌面安装包和插件包需要分别安装到目标电脑。
 
