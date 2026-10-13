@@ -20,7 +20,7 @@ Choose **Intel Mac** for a Mac with an Intel processor, and **Ubuntu x64** for a
 | **Ubuntu x64** | [DEB 安装包（推荐）](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2-missher.20261012.1/deepseek-harness-0.2.1-alpha.2.20261012.1-linux-x64-unsigned.deb) · [Release notes / 版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2-missher.20261012.1) | Ubuntu 24.04 x64 |
 | **Ubuntu x64, portable** | [AppImage](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2-missher.20261012.1/deepseek-harness-0.2.1-alpha.2.20261012.1-linux-x64-unsigned.AppImage) | Built; separate AppImage launch not qualified |
 
-The current community prerelease is **0.2.1-alpha.2.20261012.1**, based on official 0.2.1-alpha.2, with the Missher extensions for archived-session deletion and model-row settings. Download the [seven-plugin set and exact package list](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2-missher.20261012.1) from the same release. The set excludes private projects and the paused Computer Browser plugin.
+The current community release is **0.2.1-alpha.2.20261012.1**, published through the regular Release channel and based on official 0.2.1-alpha.2, with the Missher extensions for archived-session deletion and model-row settings. Download the [seven-plugin set and exact package list](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2-missher.20261012.1) from the same release. The set excludes Media, independent Obsidian and the paused Computer Browser plugin.
 
 The Ubuntu DEB has passed installation and desktop startup checks. The Intel Mac DMG has passed native packaging, integrity, isolated workspace and actual renderer checks. [Verification details](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2-missher.20261012.1) describe the exact scope; these checks do not qualify every model or plugin workflow. Desktop and plugin packages must each be installed on the target computer.
 
@@ -66,9 +66,9 @@ Bookmark this repository as the common entry point. Each name below opens its ow
 | [MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) | Scoped learning from corrections and evaluated methods; product code only, without personal learning data |
 | [Computer Browser](https://github.com/Missher12/Missher-DSH-Computer-Browser) | Browser and computer controls; development is paused, and current native workflows are not accepted |
 | [Media (private)](https://github.com/Missher12/Missher-Media) | Chrome CDP collection and selected exports |
-| [Independent Obsidian Memory (private)](https://github.com/Missher12/Missher-Obsidian-Memory) | Notes, memory and review inside Obsidian; separate from the retired DSH Obsidian bundle |
+| [Independent Obsidian Memory](https://github.com/Missher12/Missher-Obsidian-Memory) | Notes, memory and review inside Obsidian; separate from the retired DSH Obsidian bundle |
 
-Media and independent Obsidian are private: a 404 can mean your GitHub account lacks permission. MSE publishes the product only, without private learning records. All plugins are optional; a removed host-version range is not a guarantee of compatibility with every future release.
+Media alone remains in a private repository; independent Obsidian Memory is open source under MIT. Personal Vaults, notes and learning records remain private. All plugins are optional. See the [release and compatibility policy](plugins/README.md#release-and-version-compatibility) for support across Host versions.
 
 ## Common questions
 
