@@ -41,6 +41,7 @@ kind: "package-reference"
 |---|---|---|
 | `id` | 必填 | 稳定的 preset 标识符 |
 | `plugins` | 必填 | 子插件行列表 |
+| `compactionProvider` | 未设置 | 激活时替换唯一一条嵌套 `@deepseek-ai/dsh-compaction-basic` 行的模块名 |
 | `name` | 未设置 | 展示名称 |
 | `description` | 未设置 | 展示说明 |
 | `order` | 未设置 | 列表排序 |

@@ -67,6 +67,8 @@ interface Agent {
   readonly session: Session
   /** Agent-owned access to durable pending work. */
   readonly inbox: Inbox
+  /** This loop can end a failed request at a queue boundary without replaying it. */
+  readonly supportsRequestErrorHandoff?: true
   /** The current lifecycle state, mirrored on every `agent/status` transition. */
   readonly status: AgentStatus
   /** Agent-scoped context; its contributions are agent-local, unwind on disposal, and reject registration afterward. */
@@ -327,11 +329,11 @@ type PreStepDecision =
   }
 ```
 
-`agent/request-error` runs after a failed model step closes and before its turn closes. Listeners can repair durable state or await policy work while the failed turn's signal is still live. A handling listener returns `{ kind: 'retry' }` without calling `next()`; the default `undefined` leaves the failure terminal.
+`agent/request-error` runs after a terminal request failure is settled as `assistant/attempt`. Listeners can repair durable state or await policy work while the failed turn's signal is live. A handling listener returns `{ kind: 'retry' }` for another request in the same step, or `{ kind: 'handoff' }` to leave the failed request terminal and yield to queued input at the next step or turn boundary; handoff never replays the failure. The default `undefined` leaves it terminal.
 
 ```ts type-equiv
 /** Action returned by a listener that owns model-request recovery. */
-type RequestErrorAction = { kind: 'retry' } | undefined
+type RequestErrorAction = { kind: 'retry' } | { kind: 'handoff' } | undefined
 ```
 
 `agent/pre-step` is the only waterfall listener chain before request derivation. `agent/turn-stopping` runs when a turn has no tool or steering continuation, before one final steering drain.
@@ -989,13 +991,15 @@ Source: [`packages/core/agent/src/runtime-types.ts`](../../packages/core/agent/s
 
 #### `agent/request-error` — waterfall
 
-Handle one failed model-request attempt before the loop retries or closes its step. A listener returns `{ kind: 'retry' }` without calling `next()` when it owns recovery, or calls `next()` to delegate. The default `undefined` leaves the failure terminal.
+Handle one failed model-request attempt before the loop retries, hands off to already-queued input, or closes its step. A listener returns `{ kind: 'retry' }` only when replaying the same request is safe, `{ kind: 'handoff' }` to close the failed attempt and continue at the next queued-input boundary, or calls `next()` to delegate. The default `undefined` leaves the failure terminal.
 
 ```ts cordis-catalog
 /**
- * Handle one failed model-request attempt before the loop retries or closes
- * its step. A listener returns `{ kind: 'retry' }` without calling `next()`
- * when it owns recovery, or calls `next()` to delegate. The default
+ * Handle one failed model-request attempt before the loop retries, hands
+ * off to already-queued input, or closes its step. A listener returns
+ * `{ kind: 'retry' }` only when replaying the same request is safe,
+ * `{ kind: 'handoff' }` to close the failed attempt and continue at the
+ * next queued-input boundary, or calls `next()` to delegate. The default
  * `undefined` leaves the failure terminal.
  * @param payload.agent - the agent whose request failed.
  * @param payload.turn - the turn containing the failed request.

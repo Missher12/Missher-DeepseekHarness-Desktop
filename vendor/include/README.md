@@ -41,3 +41,5 @@ Example `cordis.yml`:
 | `enableLogs` | Enables loader apply, reload, and unload logs. |
 
 Patches can insert entries or override fields on entries with a matching `id`.
+For `@deepseek-ai/dsh-agent-preset`, the `compactionProvider` patch field
+updates only that config field and preserves the preset's other config keys.

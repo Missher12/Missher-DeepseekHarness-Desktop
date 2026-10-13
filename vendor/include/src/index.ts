@@ -35,6 +35,29 @@ const supported = new Set(Object.keys(writable))
 const WRITE_RETRY_LIMIT = 10
 const WRITE_RETRY_DELAY_MS = 50
 
+/** Apply the Host's one supported nested-config patch without replacing the rest of the preset config. */
+function applyPresetCompactionProviderPatch(
+  target: EntryOptions,
+  compactionProvider: unknown,
+  warn: (message: string, ...args: any[]) => void,
+  id: string,
+): boolean {
+  if (target.name !== '@deepseek-ai/dsh-agent-preset') {
+    warn('patch: compactionProvider only applies to @deepseek-ai/dsh-agent-preset entry %C', id)
+    return false
+  }
+  if (typeof compactionProvider !== 'string' || compactionProvider.trim() === '') {
+    warn('patch: compactionProvider for %C must be a non-empty string', id)
+    return false
+  }
+  if (target.config === null || typeof target.config !== 'object' || Array.isArray(target.config)) {
+    warn('patch: compactionProvider for %C requires an object config', id)
+    return false
+  }
+  target.config = { ...target.config, compactionProvider }
+  return true
+}
+
 function retryableWriteError(error: unknown): boolean {
   const code = (error as NodeJS.ErrnoException | null)?.code
   return code === 'EACCES' || code === 'EBUSY' || code === 'EPERM'
@@ -74,7 +97,7 @@ export function applyEntryPatches(
   buildMap(data)
 
   for (const patch of patches) {
-    const { id, insert, name, ...overrides } = patch
+    const { id, insert, name, compactionProvider, ...overrides } = patch
 
     if (insert) {
       if (id) {
@@ -117,6 +140,11 @@ export function applyEntryPatches(
       continue
     }
 
+    if (compactionProvider !== undefined) {
+      // This is a single documented nested-config field, not a general merge.
+      if (!applyPresetCompactionProviderPatch(target, compactionProvider, warn, id)) continue
+    }
+
     for (const [key, value] of Object.entries(overrides)) {
       if (key === 'id') continue
       target[key] = value
@@ -132,6 +160,8 @@ export interface PatchOptions {
   insert?: EntryOptions[]
   name?: string
   config?: any
+  /** Selects the AgentPresetRegistry compaction provider without replacing its plugin rows. */
+  compactionProvider?: string
   group?: boolean | null
   disabled?: boolean | null
   inject?: any

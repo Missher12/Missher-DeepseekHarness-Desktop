@@ -107,13 +107,15 @@ turn/start
 turn/end
 ```
 
-`turn/*`、`step/*`、`system/message`、`user/message`、`assistant/message`、`assistant/attempt` 和 `tool/*` 是持久会话事件；其余是分属三个事件域的实时扩展点。`agent/assistant-stream` 发布进程本地 start、瞬态 chunk 与 end frame。loop 会在 committed end frame 前把完整紧凑 stream 提交为一个 message 或仅日志 attempt；Web Session-follow adapter 是该 live event 唯一的远程消费方。`agent/pre-step`、`agent/request`、`llm/stream` 和三个 `tools/*` 事件是 waterfall（瀑布式事件），其监听器必须调用 `next()` 才能委托下去；`agent/turn-stopping` 是 serial 事件，没有 `next()`。
+`turn/*`、`step/*` 与会话消息/工具事件是持久记录；其余事件是实时扩展点。`agent/assistant-stream` 在流式响应期间发布进程本地 start 与瞬态 chunk 帧；完整紧凑流会先作为 message 或仅日志 attempt 提交，再发布 committed end 帧。Web Session-follow 是该 live event 唯一的远程消费者。waterfall 监听器须调用 `next()` 委托；`agent/turn-stopping` 为串行事件。
 
 输入通过同一个 inbox 到达驱动器；注入的上下文等待一条唤醒消息。AgentLoop 的持久 `inbox` 投影使待处理输入在没有活跃 Agent 时仍可读取。
 
-`agent/pre-step` 决定接纳的输入。监听器可以改写或拒绝已领取消息；首次领取被拒绝或为空时，关闭不含步骤的持久轮次。enter 决策可设置 `startsRequestSeries`：循环记录新的 `request/header`（原因为 `series`，或在封装同时变化时为携带 `startsSeries: true` 的 `change`）。包装监听器通过 `{ ...decision, messages }` 保留该声明。组装与 `step/start` 之后，`agent/request` 和 `prepareCall()` 先解析实际路由，再提交系统提示词与已接纳用户消息；在任一异步阶段取消都不会提交这两者。提示词准入依据已准备调用的能力，而非先前的 `request/context`。每次尝试刷新已注册运行时事实、协调绑定的提示词、仅接纳一次用户消息并恢复被移除的运行时上下文、按需记录 header/context，再冻结请求并通过绑定调用发起流式请求。重试不重复组装或 `agent/pre-step`。附接后的 surface 替换和图片省略决定开启新请求序列，包括恢复后的首次 pre-step 中发生的替换；未变化的恢复延续序列。首次接纳的步骤在用户消息之前预留系统头节点，即使提示词为空（不产生协议消息）。提示词仅通过 `system/message` 历史传递：空渲染文本清除所有生效的系统节点，模型不再看到旧提示词；具备能力的路由可在缓存前缀之后追加非空更新，包括同时发生的受支持工具更新；不具备能力的路由与新请求序列将非空提示词文本归并到首个系统节点，并为非空的后续系统节点记录空内容替换（[决策](../.agents/notes/implemented/architecture/2026-09-02-system-prompt-as-surface-node.zh.md)；[决策规则](../packages/core/agent-loop/README.zh.md#understand-the-implementation)）。
+`agent/pre-step` 选择、改写或拒绝已领取的输入；首次输入为空时，轮次无步骤即关闭。循环只组装一次提示与工具，在提交提示和用户消息前解析路由，然后记录上下文并冻结请求。重试沿用已组装内容和已接纳输入。[agent-loop](../packages/core/agent-loop/README.zh.md#understand-the-implementation) 说明运行时上下文与提示协调细节。
 
 循环发送不可变请求，同时保持取消有效，仅对完全冻结的对象复用冻结证据；[agent-loop](../packages/core/agent-loop/README.zh.md) 负责请求构建与取消原因。
+
+`agent/request-error` 在终止请求失败结算为 `assistant/attempt` 后运行。监听器可返回 `{ kind: 'retry' }`，在同一步再次请求；也可返回 `{ kind: 'handoff' }`，把控制权交给下一步骤或轮次边界的排队输入，而不重放失败请求。重试沿用已接纳输入和提示组装，每次失败仍单独记录。首次请求准备在输入提交前失败时会恢复已领取输入；若原因是取消，则须设置 `keepInbox`。重试准备被取消时，不会重新入队已提交输入。提供方未报告的用量或费用仍属未知；重试安全性不明确时可 handoff（见[恢复约定](../packages/core/agent-loop/README.zh.md#understand-the-implementation)）。
 
 失败步骤会[记录缺失的工具结果](../packages/core/agent-loop/README.zh.md#understand-the-implementation)。
 

@@ -12,6 +12,7 @@ import type {} from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/dsh-tools'
 import type { AgentPresetDocument, AgentPresetRoster } from './types.ts'
 import { entryListProblem, type PresetDefinition } from './definition.ts'
+import { replaceCompactionProvider } from './compaction-provider.ts'
 import type { AgentPreset, Config } from './preset.ts'
 import { agentPresetProjectionDefinition } from './session.ts'
 import { auditRows, leakedServices, mountPreset, serviceForMount, type PresetMount } from './mount.ts'
@@ -108,7 +109,10 @@ export class AgentPresetRegistry extends TypertRemoteService {
       const problem = entryListProblem(record.config.plugins)
       if (problem !== undefined) throw new Error(problem)
       const context = scope.ctx.extend({ baseUrl: record.context.baseUrl })
-      const mount = await mountPreset(context, record.config.id, record.config.plugins)
+      const plugins = record.config.compactionProvider === undefined
+        ? record.config.plugins
+        : replaceCompactionProvider(record.config.plugins, record.config.compactionProvider)
+      const mount = await mountPreset(context, record.config.id, plugins)
       const generation: Generation = { scope, key, mount, users: 0, retired: false }
       context.effect(() => {
         this.generations.set(key, generation)

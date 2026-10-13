@@ -55,6 +55,8 @@ The registry writes no declarations. The `read` Remote renders one declarationâ€
 
 Each declaration eagerly creates a registry-owned scope and an in-memory Loader tree. Updating or removing a declaration retires its previous revision. Agents, children and temporary historical reads retain references; releasing the final reference disposes the retired tree. Plugin registrations inherit the preset scope, and the Agent scopeâ€™s parent link controls visibility. The Host continues to share the Agent loop.
 
+An optional `compactionProvider` replaces exactly one recursively nested `@deepseek-ai/dsh-compaction-basic` row before child plugins load. The replacement preserves its group, isolation settings and sibling order. Missing, duplicate or competing compaction providers reject activation; omitting the field mounts the declared child list unchanged.
+
 A preset service provider and its consumers must share one `cordis:group` isolation realm. Entry-local isolation does not propagate through the Agent registration scope: ordinary Context lookup outside the group, including `agent.ctx`, still selects the Host realm. `agentPresets.serviceFor()` explicitly inspects the retained composition; it does not change ordinary service lookup.
 
 Activation auditing checks imports, missing services and globally leaked services. Import failures, activation failures and leaks reject the mount. A row waiting for a Host service stays mounted, and every read and binding re-audits it after the Host Loader tree settles, so startup order does not decide the outcome. Failure prevents new bindings to that definition. Session logs retain the preset ID and blank-session selections; recovery after restart uses the current definition of that ID and rejects a missing definition.

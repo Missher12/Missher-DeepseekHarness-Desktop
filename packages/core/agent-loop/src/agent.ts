@@ -16,7 +16,7 @@ import type {
   RequestErrorAction,
 } from '@deepseek-ai/dsh-agent'
 import { agentEvents, assembleContextFor } from '@deepseek-ai/dsh-agent'
-import type { GenerateOptions, LlmCallConfig, Message, PreparedLlmCall } from '@deepseek-ai/dsh-llm'
+import type { GenerateOptions, LlmCallConfig, LlmFailure, Message, PreparedLlmCall } from '@deepseek-ai/dsh-llm'
 import {
   LlmError,
   createAssistantMessage,
@@ -50,15 +50,22 @@ type Phase =
   | { kind: 'running'; abort: AbortController; turn: number; step: number; wakeRequested: boolean }
 
 type StepEndReason = Extract<TurnEndReason, { kind: 'completed' | 'max-tokens' }>
+  | { kind: 'handoff'; failure: LlmFailure }
+
+type ClaimedInput = {
+  claimedMessages: UserMessage[]
+  claimedNextStep: UserMessage[]
+  claimedNextTurn: UserMessage[]
+}
 
 type PreparedStep =
-  | { kind: 'reject' }
-  | {
+  | ({ kind: 'reject' } & ClaimedInput)
+  | ({
     kind: 'enter'
     messages: UserMessage[]
     startsRequestSeries?: true
     assembly: PromptAssembly
-  }
+  } & ClaimedInput)
 
 /** Remove adapter-derived values before plugins propose the next request config. */
 function requestProposal(header: EpochHeader): LlmCallConfig {
@@ -96,6 +103,7 @@ function abortedCancelCause(signal: AbortSignal): AgentCancelCause | undefined {
 
 /** Drives one session through turn and step boundaries. */
 export class ReactLoopAgent implements Agent {
+  readonly supportsRequestErrorHandoff = true as const
   readonly inbox: ReactLoopInbox
   private phase: Phase
   private activityDone: Promise<void> = Promise.resolve()
@@ -109,6 +117,10 @@ export class ReactLoopAgent implements Agent {
 
   /** Whether this loop instance has appended its initial/resume request anchor. */
   private requestHeaderLogged = false
+  /** A failed model request remains terminal until a queued message reaches a real next request. */
+  private pendingHandoffFailure: LlmFailure | undefined
+  /** `cancel({ keepInbox: true })` also preserves messages claimed by pre-step assembly. */
+  private keepClaimedInboxOnCancel = false
   /** Surface generation at attachment or the preceding built request. */
   private requestSurfaceGeneration: number
   private readonly runtimeContext: RuntimeContextProjection
@@ -173,8 +185,10 @@ export class ReactLoopAgent implements Agent {
   }
 
   cancel(cause: AgentCancelCause, options: CancelOptions = {}): void {
+    this.keepClaimedInboxOnCancel = options.keepInbox === true
     if (!options.keepInbox) {
       this.inbox.clear()
+      this.pendingHandoffFailure = undefined
       if (this.phase.kind !== 'idle') this.phase.wakeRequested = false
     }
     if (this.phase.kind !== 'idle') this.phase.abort.abort(cause)
@@ -268,23 +282,46 @@ export class ReactLoopAgent implements Agent {
     /* v8 ignore next -- private callers establish the running phase before proposing a step */
     if (this.phase.kind !== 'running') throw new Error(`agent "${this.id}": pre-step outside running phase`)
     const signal = this.phase.abort.signal
+    const claimedNextStep = [...this.inbox.nextStep]
+    const claimedNextTurn = target === 'next-turn' ? [...this.inbox.nextTurn].slice(0, 1) : []
     const claimed = this.inbox.claim(target, position.turn)
-    const assembly = await this.loopCtx.systemPrompt.assemble(assembleContextFor(this, signal))
-    signal.throwIfAborted()
-    const decision = await this.dispatch.waterfall(
-      'agent/pre-step', { messages: claimed, ...position, signal },
-      (): Promise<PreStepDecision> => {
-        const sections = renderContextSections(assembly)
-        const context = this.runtimeContext.project(joinContextSections(sections), sections)
-        return Promise.resolve<PreStepDecision>({
-          kind: 'enter',
-          messages: context === undefined ? claimed : [...claimed, context],
-        })
-      },
-    )
-    signal.throwIfAborted()
-    if (decision.kind === 'reject') return decision
-    return { ...decision, assembly }
+    const claimedInput = { claimedMessages: [...claimed], claimedNextStep, claimedNextTurn }
+    try {
+      const assembly = await this.loopCtx.systemPrompt.assemble(assembleContextFor(this, signal))
+      signal.throwIfAborted()
+      const decision = await this.dispatch.waterfall(
+        'agent/pre-step', { messages: claimed, ...position, signal },
+        (): Promise<PreStepDecision> => {
+          const sections = renderContextSections(assembly)
+          const context = this.runtimeContext.project(joinContextSections(sections), sections)
+          return Promise.resolve<PreStepDecision>({
+            kind: 'enter',
+            messages: context === undefined ? claimed : [...claimed, context],
+          })
+        },
+      )
+      signal.throwIfAborted()
+      if (decision.kind === 'reject') return { ...decision, ...claimedInput }
+      return { ...decision, assembly, ...claimedInput }
+    } catch (error: unknown) {
+      if (this.pendingHandoffFailure || signal.aborted && this.keepClaimedInboxOnCancel) {
+        this.restoreClaimedInput(claimedInput)
+        this.phase.wakeRequested = false
+      }
+      throw error
+    }
+  }
+
+  /** Restore exact queued messages when a handoff boundary could not prepare them. */
+  private restoreClaimedInput(claimed: ClaimedInput): void {
+    const nextStepIds = new Set(this.inbox.nextStep.map(message => message.id))
+    for (const message of [...claimed.claimedNextStep].reverse()) {
+      if (!nextStepIds.has(message.id)) this.inbox.prepend('next-step', message)
+    }
+    const nextTurnIds = new Set(this.inbox.nextTurn.map(message => message.id))
+    for (const message of [...claimed.claimedNextTurn].reverse()) {
+      if (!nextTurnIds.has(message.id)) this.inbox.prepend('next-turn', message)
+    }
   }
 
   /** Whether the assembled tool schemas differ from the logged request header's. */
@@ -316,6 +353,30 @@ export class ReactLoopAgent implements Agent {
         signal.throwIfAborted()
         const step = phase.step + 1
         const decision = await this.preStep(target, { turn, step })
+        if (this.pendingHandoffFailure) {
+          if (decision.kind === 'reject') {
+            this.restoreClaimedInput(decision)
+            phase.wakeRequested = false
+            turnEnds = { kind: 'blocked' }
+            return false
+          }
+          const includesClaimedMessage = decision.claimedMessages.some(claimed =>
+            decision.messages.some(message => message.id === claimed.id))
+          if (!includesClaimedMessage) {
+            this.restoreClaimedInput(decision)
+            // A next-turn item may still be waiting while this failed turn is
+            // closing after a next-step handoff. Let the new turn claim it.
+            if (target === 'next-step' && this.inbox.nextTurn.length > 0) {
+              turnEnds = { kind: 'aborted', reason: { kind: 'hook', reason: 'queued inbox handoff' } }
+              break
+            }
+            const failure = this.pendingHandoffFailure
+            this.pendingHandoffFailure = undefined
+            phase.wakeRequested = false
+            throw new LlmError(failure.message, failure.code, failure)
+          }
+          this.pendingHandoffFailure = undefined
+        }
         if (decision.kind === 'reject') {
           turnEnds = { kind: 'blocked' }
           return false
@@ -338,6 +399,22 @@ export class ReactLoopAgent implements Agent {
           // max-tokens is sticky: once any step hits the ceiling, later steps
           // that complete normally must not downgrade the turn outcome.
           const stepEnd = await this.step(decision)
+          signal.throwIfAborted()
+          if (stepEnd?.kind === 'handoff') {
+            this.pendingHandoffFailure = stepEnd.failure
+            if (!this.inbox.hasPending) {
+              this.pendingHandoffFailure = undefined
+              throw new LlmError(stepEnd.failure.message, stepEnd.failure.code, stepEnd.failure)
+            }
+            if (this.inbox.nextStep.length > 0) {
+              target = 'next-step'
+              continue
+            }
+            // next-turn messages are claimed by a new turn below. A hook
+            // handoff is distinct from user cancellation and from failure.
+            turnEnds = { kind: 'aborted', reason: { kind: 'hook', reason: 'queued inbox handoff' } }
+            break
+          }
           // max-tokens stays sticky: a later completed step must not
           // downgrade the turn outcome.
           if (turnEnds === null || turnEnds.kind !== 'max-tokens') turnEnds = stepEnd
@@ -407,7 +484,20 @@ export class ReactLoopAgent implements Agent {
     const renderedPrompt = renderPrompt(assembly)
     let firstAttempt = true
     while (true) {
-      const { config, preparedCall } = await this.prepareRequest(turn, step, signal)
+      let preparedRequest: { config: LlmCallConfig; preparedCall?: PreparedLlmCall }
+      try {
+        preparedRequest = await this.prepareRequest(turn, step, signal)
+      } catch (error: unknown) {
+        // The first request has not written the claimed batch to the Session.
+        // Preserve it on preparation failure or keepInbox cancellation, but
+        // never restore it during a later retry after it has been admitted.
+        if (firstAttempt && (!signal.aborted || this.keepClaimedInboxOnCancel)) {
+          this.restoreClaimedInput(decision)
+          if (signal.aborted) this.phase.wakeRequested = false
+        }
+        throw error
+      }
+      const { config, preparedCall } = preparedRequest
       const currentContext = this.loopCtx.systemPrompt.refreshContext(assembly, assembleContextFor(this, signal))
       const sections = renderContextSections(currentContext)
       const context = this.runtimeContext.project(joinContextSections(sections), sections)
@@ -520,6 +610,7 @@ export class ReactLoopAgent implements Agent {
             () => Promise.resolve<RequestErrorAction>(undefined),
           )
           signal.throwIfAborted()
+          if (action?.kind === 'handoff') return { kind: 'handoff', failure: finish.failure }
           if (action?.kind !== 'retry') {
             throw new LlmError(finish.failure.message, finish.failure.code, finish.failure)
           }

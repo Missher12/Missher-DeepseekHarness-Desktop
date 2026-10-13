@@ -119,7 +119,7 @@ export type PreStepDecision =
   }
 
 /** Action returned by a listener that owns model-request recovery. */
-export type RequestErrorAction = { kind: 'retry' } | undefined
+export type RequestErrorAction = { kind: 'retry' } | { kind: 'handoff' } | undefined
 
 /** Why a session lifecycle began; seeded creates are `startup`, while persisted loads are `resume`. */
 export type SessionStartSource = 'startup' | 'resume' | 'clear' | 'compact'
@@ -168,6 +168,8 @@ declare module './types.ts' {
     readonly session: Session
     /** Agent-owned access to durable pending work. */
     readonly inbox: Inbox
+    /** This loop can end a failed request at a queue boundary without replaying it. */
+    readonly supportsRequestErrorHandoff?: true
     /** The current lifecycle state, mirrored on every `agent/status` transition. */
     readonly status: AgentStatus
     /** Agent-scoped context; its contributions are agent-local, unwind on disposal, and reject registration afterward. */
@@ -336,9 +338,11 @@ declare module '@deepseek-ai/cordis' {
     */
     'agent/request'(this: Scoped<Agent>, payload: { agent: Agent; turn: number; step: number; signal: AbortSignal }, next: () => Promise<LlmCallConfig>): Promise<LlmCallConfig>
     /**
-     * Handle one failed model-request attempt before the loop retries or closes
-     * its step. A listener returns `{ kind: 'retry' }` without calling `next()`
-     * when it owns recovery, or calls `next()` to delegate. The default
+     * Handle one failed model-request attempt before the loop retries, hands
+     * off to already-queued input, or closes its step. A listener returns
+     * `{ kind: 'retry' }` only when replaying the same request is safe,
+     * `{ kind: 'handoff' }` to close the failed attempt and continue at the
+     * next queued-input boundary, or calls `next()` to delegate. The default
      * `undefined` leaves the failure terminal.
      * @param payload.agent - the agent whose request failed.
      * @param payload.turn - the turn containing the failed request.

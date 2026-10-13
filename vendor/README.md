@@ -58,6 +58,8 @@ Keep this log exhaustive — every divergence from upstream must be listed.
 
 23. **`loader/src/config/entry.ts` module identity**: retains each entry's raw import result as `moduleNamespace`, before plugin export normalization. HMR matches that object to Node's cached module namespace and updates it after a successful reload. `EntryTree.import()` keeps its existing arguments and return value; `loader/README.md` documents the additive field.
 
+24. **`include/src/index.ts` preset compaction-provider patch field**: adds one opt-in patch field, `compactionProvider`, restricted to `@deepseek-ai/dsh-agent-preset`. It updates only that nested config field and retains every other key and plugin row; unknown targets, malformed values, and non-object configs warn and skip the patch. This is a bounded Host extension for AgentPresetRegistry and does not change generic `config` replacement semantics. Covered by the real Loader composition regression in `packages/preset/agent-preset-registry/tests/loader-compaction-provider.spec.ts`.
+
 ## Sync procedure
 
 To update a vendored package from upstream:

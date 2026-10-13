@@ -41,6 +41,7 @@ Define an Agent’s child plugins in ordinary Cordis YAML. Declare several prese
 |---|---|---|
 | `id` | required | Stable preset identifier |
 | `plugins` | required | Child plugin entry list |
+| `compactionProvider` | unset | Module that replaces exactly one nested `@deepseek-ai/dsh-compaction-basic` row during activation |
 | `name` | unset | Display name |
 | `description` | unset | Display description |
 | `order` | unset | Roster order |

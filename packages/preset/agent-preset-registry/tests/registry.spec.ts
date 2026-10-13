@@ -1,4 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { createScope } from '@deepseek-ai/dsh-scope'
 import { assembleContextFor } from '@deepseek-ai/dsh-agent'
 import { entryListProblem } from '../src/index.ts'
@@ -13,7 +17,104 @@ const contexts: Context[] = []
 afterEach(async () => { for (const ctx of contexts.splice(0)) await ctx.fiber.dispose() })
 async function setup() { const ctx = await harness(); contexts.push(ctx); return ctx }
 
+function writePlugin(root: string, packageName: string, subpath?: string): void {
+  const parts = packageName.split('/')
+  const packageDir = join(root, 'node_modules', ...parts)
+  const moduleName = subpath === undefined ? packageName : `${packageName}/${subpath}`
+  const source = `export function apply() { globalThis.__dshPresetActivationEvents?.push(${JSON.stringify(moduleName)}) }\n`
+  mkdirSync(packageDir, { recursive: true })
+  if (subpath) {
+    const file = `${subpath}.mjs`
+    writeFileSync(join(packageDir, file), source)
+    writeFileSync(join(packageDir, 'package.json'), JSON.stringify({
+      name: packageName, version: '1.0.0', type: 'module', exports: { [`./${subpath}`]: `./${file}` },
+    }))
+  } else {
+    writeFileSync(join(packageDir, 'index.mjs'), source)
+    writeFileSync(join(packageDir, 'package.json'), JSON.stringify({
+      name: packageName, version: '1.0.0', type: 'module', exports: './index.mjs',
+    }))
+  }
+}
+
 describe('declarative preset revisions', () => {
+  it('replaces the automatic provider at activation and keeps command, reducer and group order', async () => {
+    const ctx = await setup()
+    const root = mkdtempSync(join(tmpdir(), 'dsh-preset-provider-'))
+    const activationEvents: string[] = []
+    const runtime = globalThis as typeof globalThis & { __dshPresetActivationEvents?: string[] }
+    runtime.__dshPresetActivationEvents = activationEvents
+    const contextProvider = '@missher/dsh-context-manager'
+    writePlugin(root, '@deepseek-ai/dsh-compaction-basic')
+    writePlugin(root, contextProvider, 'engine')
+    writePlugin(root, '@deepseek-ai/dsh-command-compact')
+    writePlugin(root, '@deepseek-ai/dsh-compaction-tool-result-pruner')
+    ctx.baseUrl = pathToFileURL(`${root}/`).href
+    try {
+      await declare(ctx, {
+        id: 'standard', compactionProvider: `${contextProvider}/engine`, plugins: [{
+          id: 'compaction', name: 'cordis:group', group: true,
+          isolate: { compaction: true, toolResultPruner: true },
+          config: [
+            { id: 'compaction-basic', name: '@deepseek-ai/dsh-compaction-basic' },
+            { id: 'command-compact', name: '@deepseek-ai/dsh-command-compact' },
+            { id: 'tool-result-pruner', name: '@deepseek-ai/dsh-compaction-tool-result-pruner', config: { thresholdChars: 8192 } },
+          ],
+        }],
+      })
+      const [composition] = await ctx.agentPresets.compositionInventory()
+      expect(composition?.broken).toBeUndefined()
+      expect(composition?.rows.map(row => row.moduleName)).toEqual([
+        `${contextProvider}/engine`, '@deepseek-ai/dsh-command-compact', '@deepseek-ai/dsh-compaction-tool-result-pruner',
+      ])
+      expect(activationEvents).toEqual([
+        `${contextProvider}/engine`, '@deepseek-ai/dsh-command-compact', '@deepseek-ai/dsh-compaction-tool-result-pruner',
+      ])
+      expect(ctx.agentPresets.inspectCompositions()[0]?.modules.map(row => row.moduleName))
+        .toEqual(composition?.rows.map(row => row.moduleName))
+    } finally { delete runtime.__dshPresetActivationEvents; rmSync(root, { recursive: true, force: true }) }
+  })
+
+  it('keeps a saved full preset unchanged when the optional provider capability is absent', async () => {
+    const ctx = await setup()
+    const root = mkdtempSync(join(tmpdir(), 'dsh-preset-provider-fallback-'))
+    const activationEvents: string[] = []
+    const runtime = globalThis as typeof globalThis & { __dshPresetActivationEvents?: string[] }
+    runtime.__dshPresetActivationEvents = activationEvents
+    writePlugin(root, '@deepseek-ai/dsh-compaction-basic')
+    ctx.baseUrl = pathToFileURL(`${root}/`).href
+    try {
+      await declare(ctx, { id: 'standard', plugins: [{ id: 'compaction-basic', name: '@deepseek-ai/dsh-compaction-basic' }] })
+      const [composition] = await ctx.agentPresets.compositionInventory()
+      expect(composition?.broken).toBeUndefined()
+      expect(composition?.rows.map(row => row.moduleName)).toEqual(['@deepseek-ai/dsh-compaction-basic'])
+      expect(activationEvents).toEqual(['@deepseek-ai/dsh-compaction-basic'])
+    } finally { delete runtime.__dshPresetActivationEvents; rmSync(root, { recursive: true, force: true }) }
+  })
+
+  it.each([
+    ['missing', [{ name: '@deepseek-ai/dsh-command-compact' }], /expected exactly one.*found 0/u],
+    ['duplicate', [
+      { name: '@deepseek-ai/dsh-compaction-basic' },
+      { name: '@deepseek-ai/dsh-compaction-basic' },
+    ], /expected exactly one.*found 2/u],
+    ['competing', [
+      { name: '@deepseek-ai/dsh-compaction-basic' },
+      { name: '@example/compaction-provider' },
+    ], /competing compaction provider/u],
+  ] as const)('refuses %s automatic provider rows at activation', async (kind, rows, expected) => {
+    const ctx = await setup()
+    await declare(ctx, {
+      id: `invalid-provider-${kind}`,
+      compactionProvider: '@missher/dsh-context-manager/engine',
+      plugins: [{ name: 'cordis:group', group: true, config: rows }],
+    })
+    const resolution = await ctx.agentPresets.resolve(`invalid-provider-${kind}`)
+    expect(resolution.broken).toBeDefined()
+    expect(resolution.broken ?? '').toMatch(expected)
+    expect(ctx.agentPresets.inspectCompositions()).toEqual([])
+  })
+
   it('eagerly scopes tool and prompt registrations and shares one revision across Agents', async () => {
     const ctx = await setup()
     await declare(ctx, contribution('standard'))
