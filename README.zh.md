@@ -8,6 +8,14 @@
 
 应用不附带模型账号或 API 额度，安装后需配置自己的模型服务。桌面安装包、插件源码和个人数据分别管理；下载本仓库不会带走他人的聊天、密钥或学习记录。
 
+## 界面预览
+
+| Ubuntu x64 | Intel Mac |
+| --- | --- |
+| ![Ubuntu 桌面：隔离工作区中的新会话](docs/images/desktop/desktop-ubuntu-alpha2.png) | ![Intel Mac 桌面：隔离工作区中的新会话](docs/images/desktop/desktop-intel-mac-alpha2.png) |
+
+图片来自 **0.2.1-alpha.2.20261014.1** 的真实应用窗口，使用独立测试配置，不含个人聊天。这里展示初始工作区；插件界面取决于你安装的插件。点击图片可查看原图。
+
 <a id="downloads"></a>
 
 ## 下载安装

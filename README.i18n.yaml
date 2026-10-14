@@ -3,8 +3,11 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write README.md
 /missher-deepseek-harness-desktop:
-  en: 70e8fd28b1384e54
-  zh: cd5d5aea5d0c5b9a
+  en: f457ebae76fd4646
+  zh: d3fcd1fa527e99bf
+/missher-deepseek-harness-desktop/screenshots:
+  en: c90e4916047b0546
+  zh: c2cbf811e7576eb1
 /missher-deepseek-harness-desktop/download:
   en: e18bcd09fc52b915
   zh: 62002cd0450660eb

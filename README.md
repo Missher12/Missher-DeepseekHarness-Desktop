@@ -8,6 +8,14 @@ A desktop workspace for working with AI models, files, tools and optional plugin
 
 The application does not include a model account or API credits. Configure your own provider after installation. Plugin source, application downloads and personal data are separate: downloading this repository never copies someone else’s chats, keys or learned experiences.
 
+## Screenshots
+
+| Ubuntu x64 | Intel Mac |
+| --- | --- |
+| ![Ubuntu desktop with a new session in an isolated workspace](docs/images/desktop/desktop-ubuntu-alpha2.png) | ![Intel Mac desktop with a new session in an isolated workspace](docs/images/desktop/desktop-intel-mac-alpha2.png) |
+
+Real application windows from release **0.2.1-alpha.2.20261014.1**, captured with separate test profiles and no personal chats. These show the initial workspace; plugin interfaces depend on the plugins you install. Click an image to view it at full size.
+
 <a id="downloads"></a>
 
 ## Download / 下载安装
