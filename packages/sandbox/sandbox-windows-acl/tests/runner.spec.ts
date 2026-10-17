@@ -744,8 +744,17 @@ describe.skipIf(!isWin32 || !pwshAvailable())('windows-acl runner', () => {
     writeFileSync(join(granted, 'file.txt'), 'x')
     writeFileSync(join(child, 'deep.txt'), 'x')
     const grant = AclWriteGrant.create(workspaceWriteSid(granted))
-    grant.add(granted, true)
     try {
+      grant.add(granted, true)
+      // The directory was created before the grant, and this machine's default
+      // heredity can leave EXPLICIT FullControl allows on it; explicit ACEs
+      // outrank an inherited deny (order-of-aces-in-a-dacl). Reset the child so
+      // its DACL is exactly the ACEs inherited from the granted root, which puts
+      // the Everyone deny in the inherited-deny position, and read back that
+      // precondition instead of assuming the machine's directory prior.
+      const reset = spawnSync('icacls', [child, '/reset'], { encoding: 'utf8', timeout: 60_000 })
+      expect(reset.signal, `icacls /reset signal: ${reset.stdout}${reset.stderr}`).toBeNull()
+      expect(reset.status, `icacls /reset: ${reset.stdout}${reset.stderr}`).toBe(0)
       const probe = `
 $ErrorActionPreference='SilentlyContinue'
 Add-Type -Namespace P -Name F -MemberDefinition @'
@@ -799,6 +808,16 @@ EmitAcl '${child}'
       // observations below must come from a completed run.
       expect(result.signal, detail).toBeNull()
       expect(result.status, detail).toBe(0)
+      // Precondition read back from the probe: the child's DACL is inherited
+      // only, and its first ACE is the deny, so the denial below is caused by
+      // the deny rather than by a machine-specific explicit allow.
+      const lines = result.stdout.split(/\r?\n/u)
+      const childHeader = lines.findIndex(line => line.startsWith(`ACL ${child}`))
+      expect(childHeader, detail).toBeGreaterThanOrEqual(0)
+      const childAces = lines.slice(childHeader + 1).filter(line => line.startsWith('ACE '))
+      expect(childAces.length, detail).toBeGreaterThan(0)
+      expect(childAces.every(line => line.includes('inherited=True')), detail).toBe(true)
+      expect(childAces[0], detail).toContain('Deny|DeleteSubdirectoriesAndFiles|Everyone')
       expect(result.stdout, detail).toContain('FILE: OK')
       expect(result.stdout, detail).toContain('NESTED-FILE: OK')
       expect(result.stdout, detail).toContain('DIRECTORY: DENIED')
@@ -807,6 +826,270 @@ EmitAcl '${child}'
       rmSync(granted, { recursive: true, force: true })
     }
   }, 60_000)
+
+  it('a confined session cannot delete another session\'s granted High-ACL nested victim', () => {
+    // One shared budget for the whole case: every subprocess receives the
+    // remaining milliseconds, cleanup keeps a reserve, and an exhausted budget
+    // throws instead of spawning again. Synchronous Win32 calls are not
+    // interruptible; the budget bounds the spawns, not the kernel calls.
+    const caseDeadline = Date.now() + 100_000
+    const cleanupReserveMs = 15_000
+    const remaining = (): number => {
+      const left = caseDeadline - Date.now() - cleanupReserveMs
+      if (left <= 1_000) throw new Error('cross-session case budget exhausted')
+      return Math.floor(left)
+    }
+    const sharedRoot = join(scratchRoot, 'sessions')
+    const workspaceA = join(sharedRoot, 'ws-a')
+    const workspaceB = join(sharedRoot, 'ws-b')
+    const nestedB = join(workspaceB, 'nested', 'deep')
+    const ownVictim = join(workspaceA, 'own.txt')
+    const victimB = join(nestedB, 'victim.txt')
+    const temps: string[] = []
+    const grants: AclWriteGrant[] = []
+    const cleanupFailures: string[] = []
+    const mkTemp = (prefix: string): string => {
+      const dir = mkdtempSync(join(tmpdir(), prefix))
+      temps.push(dir)
+      return dir
+    }
+    const addGrant = (sid: string): AclWriteGrant => {
+      const grant = AclWriteGrant.create(sid)
+      grants.push(grant)
+      return grant
+    }
+    const reportDir = process.env.DSH_WINDOWS_ACL_REPORT_DIR === undefined
+      ? join(scratchRoot, 'native-redirect-reports')
+      : resolve(process.cwd(), process.env.DSH_WINDOWS_ACL_REPORT_DIR)
+    // Everything observable for the report lives here; labels replace the
+    // absolute paths only at serialization time, and the structure is kept.
+    const state: Record<string, unknown> = { case: 'cross-session', stage: 'setup', deadlineMs: 100_000 }
+    // Paths this case owns, registered when created; finally reads this table
+    // instead of the try-scoped consts (A and B never guessed from order).
+    const pathLabels: [string, string][] = [
+      [scratchRoot, '<scratch>'], [sharedRoot, '<sessions>'],
+      [workspaceA, '<workspace-a>'], [workspaceB, '<workspace-b>'],
+      [process.cwd(), '<cwd>'], [homedir(), '<home>'],
+    ]
+    const run = (label: string, argv: readonly string[], timeoutMs: number): ReturnType<typeof spawnSync> => {
+      const result = spawnSync(argv[0] as string, argv.slice(1), { encoding: 'utf8', timeout: timeoutMs })
+      state[label] = { status: result.status, signal: result.signal, stdout: result.stdout ?? '', stderr: result.stderr ?? '' }
+      return result
+    }
+    interface AclFact {
+      path: string
+      win32: number
+      read: boolean
+      sddl: string | null
+      labelSid: string | null
+      labelMask: string | null
+      freeErrors: string[]
+      aces: { type: string; rights: string; sid: string; inherited: boolean }[]
+      userSid: string
+    }
+    const aclFacts = (stageName: string, paths: readonly string[]): Record<string, AclFact> => {
+      const input = join(scratchRoot, `acl-paths-${stageName}.json`)
+      const output = join(scratchRoot, `acl-facts-${stageName}.json`)
+      writeFileSync(input, JSON.stringify(paths))
+      state[`aclInput-${stageName}`] = 'written'
+      const result = run(`aclRead-${stageName}`, [resolvePwshPath(), '-NoLogo', '-NoProfile', '-NonInteractive', '-File',
+        fileURLToPath(new URL('./fixtures/win32-acl-readback.ps1', import.meta.url)),
+        '-PathsJson', readFileSync(input, 'utf8'), '-OutFile', output], remaining())
+      let rows: AclFact[] = []
+      let parseError: string | undefined
+      try {
+        // Parse once; normalize the union before anything reads it.
+        const parsed = JSON.parse(readFileSync(output, 'utf8')) as AclFact[] | AclFact
+        rows = Array.isArray(parsed) ? parsed : [parsed]
+      } catch (error) {
+        parseError = error instanceof Error ? error.message : String(error)
+      }
+      // Raw process facts and the parse outcome are stored before any assertion.
+      state[`acl-${stageName}`] = { status: result.status, signal: result.signal, parseError, rows }
+      expect(result.signal, `acl read-back signal: ${result.stderr}`).toBeNull()
+      expect(result.status, `acl read-back failed: ${result.stderr}`).toBe(0)
+      expect(parseError, 'acl read-back JSON').toBeUndefined()
+      for (const row of rows) {
+        expect(row.freeErrors, `LocalFree failed for ${row.path}`).toEqual([])
+        expect(row.read, `ACL read failed for ${row.path} (win32 ${row.win32})`).toBe(true)
+        expect(row.win32).toBe(0)
+      }
+      rmSync(input, { force: true })
+      rmSync(output, { force: true })
+      return Object.fromEntries(rows.map(row => [row.path, row]))
+    }
+    let bodyError: unknown
+    try {
+      state.stage = 'create'
+      const tempA = mkTemp('dsh-sess-a-')
+      const tempB = mkTemp('dsh-sess-b-')
+      pathLabels.push([tempA, '<temp-a>'], [tempB, '<temp-b>'])
+      const nestedTempB = join(tempB, 'nested', 'deep')
+      const victimTempB = join(nestedTempB, 'victim.txt')
+      const ownTempVictim = join(tempA, 'own-temp.txt')
+      for (const dir of [workspaceA, nestedB, nestedTempB]) mkdirSync(dir, { recursive: true })
+      writeFileSync(ownVictim, 'own')
+      writeFileSync(ownTempVictim, 'own-temp')
+      writeFileSync(victimB, 'other-workspace-victim')
+      writeFileSync(victimTempB, 'other-temp-victim')
+      const sidA = workspaceWriteSid(workspaceA)
+      const tempSidA = tempWriteSid(tempA)
+      const sidB = workspaceWriteSid(workspaceB)
+      const tempSidB = tempWriteSid(tempB)
+      addGrant(sidA).add(workspaceA)
+      addGrant(tempSidA).add(tempA)
+      addGrant(sidB).add(workspaceB)
+      addGrant(tempSidB).add(tempB)
+      state.stage = 'acl'
+      const grantExplicit = (path: string): void => {
+        const granted = run(
+          `icacls-${path === nestedB ? 'ws' : 'temp'}`,
+          ['icacls', path, '/grant', `${process.env.USERNAME}:F`],
+          remaining(),
+        )
+        expect(granted.signal).toBeNull()
+        expect(granted.status, `icacls explicit allow: ${granted.stdout}${granted.stderr}`).toBe(0)
+      }
+      grantExplicit(nestedB)
+      grantExplicit(nestedTempB)
+      const before = aclFacts('before', [workspaceB, tempB, nestedB, nestedTempB])
+      state.before = before
+      for (const [path, fact] of Object.entries(before)) {
+        expect(fact.labelSid, `${path} label SID`).toBe('S-1-16-4096')
+        expect(fact.labelMask, `${path} label mask`).toContain('NW')
+      }
+      const userSid = before[workspaceB]?.userSid ?? ''
+      expect(userSid).toMatch(/^S-1-5-21-/u)
+      // The B root and its nested tree really carry B's capability SID (and the
+      // temp side its own), read back from the parsed ACEs — not inferred from
+      // grant.add. These are the preconditions that make the DENIED result mean
+      // the cross-session boundary rather than a missing grant.
+      const acesOf = (path: string): { sid: string }[] => before[path]?.aces ?? []
+      for (const [path, capability] of [
+        [workspaceB, sidB], [nestedB, sidB],
+        [tempB, tempSidB], [nestedTempB, tempSidB],
+      ] as const) {
+        expect(acesOf(path).some(ace => ace.sid === capability), `${path} carries ${capability}`).toBe(true)
+      }
+      for (const path of [nestedB, nestedTempB]) {
+        const aces = before[path]?.aces ?? []
+        const explicit = aces.findIndex(ace => !ace.inherited && ace.type === 'Allow' && ace.sid === userSid
+          && ace.rights.includes('FullControl'))
+        const deny = aces.findIndex(ace => ace.inherited && ace.type === 'Deny' && ace.sid === 'S-1-1-0'
+          && ace.rights.includes('DeleteSubdirectoriesAndFiles'))
+        expect(explicit, `${path} explicit allow: ${JSON.stringify(aces)}`).toBeGreaterThanOrEqual(0)
+        expect(deny, `${path} inherited deny: ${JSON.stringify(aces)}`).toBeGreaterThanOrEqual(0)
+        expect(explicit, `${path} order`).toBeLessThan(deny)
+      }
+      state.stage = 'probe'
+      const probe = [
+        "const fs = require('node:fs');",
+        'const rm = (label, p) => { try { fs.rmSync(p, { recursive: true, force: false });',
+        "  console.log(label + ': DELETED') } catch (e) { console.log(label + ': DENIED ' + (e.code ?? '')) } };",
+        `rm('OTHER-DIR', ${JSON.stringify(nestedB)});`,
+        `rm('OTHER-FILE', ${JSON.stringify(victimB)});`,
+        `rm('OTHER-TEMP', ${JSON.stringify(nestedTempB)});`,
+        `rm('OTHER-TEMP-FILE', ${JSON.stringify(victimTempB)});`,
+        `rm('OWN-WS', ${JSON.stringify(ownVictim)});`,
+        `rm('OWN-TEMP', ${JSON.stringify(ownTempVictim)});`,
+      ].join('')
+      const result = run('runner', [process.execPath, '--import', 'tsx/esm', runnerEntry,
+        '--workspace', workspaceA, '--temp', tempA,
+        '--write-sid', sidA, '--temp-write-sid', tempSidA,
+        '--mode', 'workspace-write', '--', process.execPath, '-e', probe], remaining())
+      state.stage = 'assert'
+      state.victims = {
+        workspaceBefore: readFileSync(victimB, 'utf8'),
+        tempBefore: readFileSync(victimTempB, 'utf8'),
+      }
+      const detail = `stdout: ${result.stdout}\nstderr: ${result.stderr}`
+      expect(result.status, detail).toBe(0)
+      expect(result.signal, detail).toBeNull()
+      expect(result.stdout, detail).toMatch(/OTHER-DIR: DENIED (EACCES|EPERM)/u)
+      expect(result.stdout, detail).toMatch(/OTHER-FILE: DENIED (EACCES|EPERM)/u)
+      expect(result.stdout, detail).toMatch(/OTHER-TEMP: DENIED (EACCES|EPERM)/u)
+      expect(result.stdout, detail).toMatch(/OTHER-TEMP-FILE: DENIED (EACCES|EPERM)/u)
+      expect(result.stdout, detail).toContain('OWN-WS: DELETED')
+      expect(result.stdout, detail).toContain('OWN-TEMP: DELETED')
+      expect(readFileSync(victimB, 'utf8')).toBe('other-workspace-victim')
+      expect(readFileSync(victimTempB, 'utf8')).toBe('other-temp-victim')
+      state.stage = 'after'
+      const after = aclFacts('after', [nestedB, nestedTempB])
+      state.after = after
+      expect(after[nestedB]?.sddl ?? '').not.toContain(sidA)
+      expect(after[nestedTempB]?.sddl ?? '').not.toContain(tempSidA)
+      state.stage = 'done'
+    } catch (error) {
+      bodyError = error
+      throw error
+    } finally {
+      // Cleanup runs even when the body threw, keeps going after a single
+      // failure, and records everything for the public report.
+      for (const grant of grants.reverse()) {
+        try {
+          grant.dispose()
+        } catch (error) {
+          cleanupFailures.push(`grant: ${error instanceof Error ? error.message : String(error)}`)
+        }
+      }
+      for (const dir of temps.reverse()) {
+        try {
+          rmSync(dir, { recursive: true, force: true })
+        } catch (error) {
+          cleanupFailures.push(`temp: ${error instanceof Error ? error.message : String(error)}`)
+        }
+      }
+      try {
+        rmSync(sharedRoot, { recursive: true, force: true })
+      } catch (error) {
+        cleanupFailures.push(`root: ${error instanceof Error ? error.message : String(error)}`)
+      }
+      try {
+        mkdirSync(reportDir, { recursive: true })
+        // Serialize once, then replace absolute roots with stable labels: the
+        // structure survives, and no machine path is published.
+        const describeError = (error: unknown): string => error instanceof Error
+          ? `${error.name}: ${error.message}`
+          : typeof error === 'string' ? error : JSON.stringify(error)
+        // Recursive scrub: strings and keys, longest path first, with both
+        // separator forms; JSON.stringify runs only after scrubbing, so no
+        // escaping mismatch and no truncated document.
+        const labels: [string, string][] = pathLabels
+          .filter(([value]) => value !== '')
+          .sort((left, right) => right[0].length - left[0].length)
+        const scrubText = (text: string): string => labels.reduce((current, [value, label]) => {
+          const variants = [value, value.replaceAll('\\', '/'), value.replaceAll('/', '\\')]
+          return variants.reduce((inner, variant) => inner.replaceAll(variant, label), current)
+        }, text)
+        const boundText = (text: string): string => text.length > 20_000 ? `${text.slice(0, 20_000)}…<truncated>` : text
+        const scrub = (value: unknown): unknown => {
+          if (typeof value === 'string') return boundText(scrubText(value))
+          // ACL arrays stay complete: truncating them would silently drop a
+          // precondition. Only transcript-like strings are bounded above.
+          if (Array.isArray(value)) return value.map(item => scrub(item))
+          if (value !== null && typeof value === 'object') {
+            return Object.fromEntries(Object.entries(value).map(([key, item]) => [scrubText(key), scrub(item)]))
+          }
+          return value
+        }
+        const report = scrub({
+          state,
+          cleanupFailures,
+          bodyError: bodyError === undefined ? null : describeError(bodyError),
+        })
+        writeFileSync(join(reportDir, 'cross-session.json'), JSON.stringify(report, null, 2))
+      } catch (error) {
+        cleanupFailures.push(`report: ${error instanceof Error ? error.message : String(error)}`)
+      }
+      if (cleanupFailures.length > 0) {
+        const cleanupError = new Error(cleanupFailures.join('; '))
+        throw bodyError === undefined
+          ? new AggregateError([cleanupError], 'cross-session cleanup failed')
+          : new AggregateError([bodyError, cleanupError], 'cross-session failed with cleanup issues')
+      }
+      if (bodyError !== undefined) throw bodyError
+    }
+  }, 120_000)
 
   it('revoking one of two grants on a directory leaves the shared Low label usable', () => {
     // Two capabilities may target one directory; the revoke of the first must

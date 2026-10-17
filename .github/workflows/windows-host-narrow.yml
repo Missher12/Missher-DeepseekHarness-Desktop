@@ -10,9 +10,12 @@ name: Windows Host narrow validation
 # without triggering the broad PR lanes (ci.yml) or the full-installer
 # windows-package job.
 #
-# Nothing else runs here: no other package tests, no installer, no bundle or
-# compile build step. The scoped dependency install does run the closure's
-# own lifecycle scripts, which are listed at that step.
+# The native probes and the runner/subprocess-local suites run first and keep
+# their gates. Only when the root dispatches `run-ops-profile: true` does the
+# same single job continue with an install, the canonical Host build and the
+# original Project Ops smoke profile; nothing else is added, no matrix and no
+# rerun of older runs. No installer, no bundler step other than that canonical
+# Host build.
 on:
   workflow_dispatch:
     inputs:
@@ -20,6 +23,11 @@ on:
         description: Exact Node version for the reproduction (upstream evidence pins 22.20.0)
         required: false
         default: '22.20.0'
+      run-ops-profile:
+        description: Also run the Project Ops 0.4.0 smoke profile against this checkout's built Host
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -29,7 +37,7 @@ env:
   DSH_TELEMETRY_DISABLED: '1'
   NODE_OPTIONS: '--max-old-space-size=1536'
   DSH_WINDOWS_ACL_NATIVE_PIPE: '1'
-  DSH_WINDOWS_ACL_REPORT_DIR: native-redirect-reports
+  DSH_WINDOWS_ACL_REPORT_DIR: ${{ github.workspace }}/native-redirect-reports
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -124,7 +132,11 @@ jobs:
             'keeps raw stdin writable while the runner starts the target',
             'preserves direct Node null-device semantics for ignored stdin',
             'reports direct exit before terminating its default-inheritance descendant',
-            'preserves missing-target and invalid-executable rejection errors'
+            'preserves missing-target and invalid-executable rejection errors',
+            # New restricted safety cases: the ACL fixture precondition and the
+            # cross-session ambient-delete boundary.
+            'a FullControl open inside a granted root still works for files (the deny inherits to containers only)',
+            'a confined session cannot delete another session''s granted High-ACL nested victim'
           )
           foreach ($title in $required) {
             $case = $report.testResults.assertionResults | Where-Object { $_.title -eq $title }
@@ -154,10 +166,206 @@ jobs:
           if ($envelope.evidence.ok -ne $true) { throw "pwsh redirect evidence is not ok: $($envelope.evidence.failure)" }
           if (-not $envelope.evidence.npmScript.isScript) { throw 'npm did not resolve to npm.ps1' }
 
+      # The Ops stage is opt-in per dispatch. `pnpm run build:lib:host` is the
+      # canonical Host build (aggregate tsc + Desktop bundle) and its tsc step
+      # keeps the repository's explicit 4096 MiB heap; that is the BUILD heap,
+      # not the 1536 MiB used for the installed test run above.
+      - name: Ops - resource facts
+        id: ops-resources
+        if: ${{ inputs.run-ops-profile }}
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:DSH_WINDOWS_ACL_REPORT_DIR | Out-Null
+          $ram = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1MB)
+          $heap = (node -e "process.stdout.write(String(require('node:v8').getHeapStatistics().heap_size_limit))").Trim()
+          if ($LASTEXITCODE -ne 0) { throw "node heap probe failed: $LASTEXITCODE" }
+          [ordered]@{
+            head = $env:GITHUB_SHA
+            physicalRamMiB = $ram
+            configuredNodeHeapMiB = 1536
+            actualNodeHeapLimitBytes = [int64]$heap
+            testWorker = 1
+            buildTscHeapMiB = 4096
+            buildHeapSource = 'repository tsc override inside pnpm run build:lib:host'
+            cgroup = 'none on Windows; the VM is the only physical ceiling'
+          } | ConvertTo-Json -Depth 3 | Set-Content -Encoding utf8 (Join-Path $env:DSH_WINDOWS_ACL_REPORT_DIR 'resource-facts.json')
+
+      - name: Ops - install and canonical Host build
+        id: ops-build
+        if: ${{ inputs.run-ops-profile }}
+        shell: pwsh
+        run: |
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) { throw "pnpm install failed: $LASTEXITCODE" }
+          # The canonical build's own tsc step carries the repository's explicit
+          # 4096 MiB heap; this step does not raise NODE_OPTIONS globally, and
+          # the installed test run above keeps 1536 MiB.
+          pnpm run build:lib:host
+          if ($LASTEXITCODE -ne 0) { throw "canonical Host build failed: $LASTEXITCODE" }
+          "hostHeap=:canonical build tsc override 4096 MiB (build only); test heap 1536 MiB; Windows has no Linux cgroup" |
+            Out-File -FilePath (Join-Path $env:DSH_WINDOWS_ACL_REPORT_DIR 'build-limits.txt') -Encoding utf8
+
+      # Pinned read-only Ops tooling; sparse checkout, no credentials persisted.
+      # Full read-only checkout of the pinned tooling: the smoke profile also
+      # reads `tests/fixtures/official-profile.expected.json`, which a
+      # file-level sparse pattern would drop.
+      - name: Ops - checkout pinned tooling
+        if: ${{ inputs.run-ops-profile }}
+        uses: actions/checkout@v7.0.1
+        with:
+          repository: Missher12/Missher-DSH-Project-Ops
+          ref: 97927a76a5ac5cc002987d608851a0e748c544dc
+          path: ops-tools
+          persist-credentials: false
+
+      - name: Ops - read back the tooling HEAD
+        id: ops-tools
+        if: ${{ inputs.run-ops-profile }}
+        shell: pwsh
+        run: |
+          $head = (git -C ops-tools rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0) { throw 'could not read the Ops tooling HEAD' }
+          if ($head -ne '97927a76a5ac5cc002987d608851a0e748c544dc') { throw "Ops tooling HEAD $head is not the pinned commit" }
+
+      - name: Ops - frozen archive
+        id: ops-archive
+        if: ${{ inputs.run-ops-profile }}
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'missher-dsh-project-ops-0.4.0.tgz'
+          Invoke-WebRequest -Uri 'https://github.com/Missher12/Missher-DSH-Project-Ops/releases/download/v0.4.0/missher-dsh-project-ops-0.4.0.tgz' -OutFile $archive
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path $archive)) { throw "archive download failed: $LASTEXITCODE" }
+          $bytes = (Get-Item $archive).Length
+          $sha = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($bytes -ne 249145) { throw "ops archive size $bytes != 249145" }
+          if ($sha -ne 'c48e2895dd077421470ba5866e86016432201788fc222bcf4b1b15b6b7bd94ce') { throw "ops archive sha $sha mismatch" }
+          "PROJECT_OPS_ARCHIVE=$archive" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "PROJECT_OPS_ARCHIVE_SHA256=$sha" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Ops - verify the isolated Host binding
+        id: ops-binding
+        if: ${{ inputs.run-ops-profile }}
+        shell: pwsh
+        run: |
+          $parent = Join-Path $env:RUNNER_TEMP 'ops-host-parent'
+          New-Item -ItemType Directory -Force -Path $parent | Out-Null
+          $hostRoot = Join-Path $parent 'root'
+          $privateRoot = Join-Path $env:RUNNER_TEMP 'ops-host-root.txt'
+          node scripts/verify-ops-host-binding.mjs --prepare --checkout . --host-root $hostRoot --expected-head $env:GITHUB_SHA `
+            --json (Join-Path $env:DSH_WINDOWS_ACL_REPORT_DIR 'ops-host-binding.json') --private-root-file $privateRoot
+          if ($LASTEXITCODE -ne 0) { throw "Host binding verification failed: $LASTEXITCODE" }
+          $resolvedRoot = (Get-Content -LiteralPath $privateRoot -Raw).Trim()
+          if ($resolvedRoot -ne $hostRoot) { throw "binding report root $resolvedRoot is not the requested root" }
+          "PROJECT_OPS_HOST_ROOT=$resolvedRoot" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "PROJECT_OPS_NODE=$((Get-Command node).Source)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $nonce = "$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          $observerJson = Join-Path $env:DSH_WINDOWS_ACL_REPORT_DIR 'ops-observer.json'
+          if (Test-Path -LiteralPath $observerJson) { throw "stale observer evidence exists before this run: $observerJson" }
+          $overlay = Join-Path $env:RUNNER_TEMP 'ops-runtime-observer.patch.yml'
+          node scripts/ops-runtime-observer-overlay.mjs --out $overlay --observer scripts/ops-runtime-observer.mjs `
+            --checkout . --expected-head $env:GITHUB_SHA --nonce $nonce --out-file $observerJson
+          if ($LASTEXITCODE -ne 0) { throw "observer overlay generation failed: $LASTEXITCODE" }
+          "PROJECT_OPS_EXTRA_PATCH=$overlay" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "OPS_OBSERVER_JSON=$observerJson" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "OPS_RUN_NONCE=$nonce" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      # The original Ops driver: it initializes an isolated profile through the
+      # real CLI, installs the frozen plugin, synthesizes workspace and
+      # packages/app/package.json (verify = node verify.cjs) and runs the plugin's
+      # own task. Its assertions, markers and failure gates stay untouched.
+      - name: Ops - original smoke profile
+        id: ops-smoke
+        if: ${{ inputs.run-ops-profile }}
+        shell: pwsh
+        working-directory: ops-tools
+        env:
+          DSH_TELEMETRY_DISABLED: '1'
+        run: |
+          if (Test-Path pnpm-lock.yaml) { pnpm install --frozen-lockfile }
+          if ($LASTEXITCODE -ne 0) { throw "Ops tooling install failed: $LASTEXITCODE" }
+          node scripts/smoke-profile.mjs
+          if ($LASTEXITCODE -ne 0) { throw "the original Ops smoke profile did not pass: $LASTEXITCODE" }
+
+      - name: Ops - preserve the current smoke report
+        id: ops-preserve
+        if: always() && inputs.run-ops-profile
+        shell: pwsh
+        run: |
+          $source = Join-Path $env:GITHUB_WORKSPACE 'ops-tools/.artifacts/ci-diagnostics/smoke-profile.json'
+          $target = Join-Path $env:DSH_WINDOWS_ACL_REPORT_DIR 'smoke-profile.json'
+          $status = [ordered]@{ source = 'ops-tools/.artifacts/ci-diagnostics/smoke-profile.json'; copied = $false }
+          if (Test-Path -LiteralPath $source) {
+            Copy-Item -LiteralPath $source -Destination $target -Force
+            $status.copied = $true
+          }
+          $status | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $env:DSH_WINDOWS_ACL_REPORT_DIR 'smoke-preserved.json')
+          if (-not $status.copied) { Write-Warning 'the Ops smoke report is absent; the gate step will fail' }
+
+      - name: Ops - hard gate
+        id: ops-gate
+        if: always() && inputs.run-ops-profile
+        shell: pwsh
+        run: |
+          $failures = @()
+          if ('${{ steps.ops-smoke.outcome }}' -ne 'success') { $failures += "smoke outcome: ${{ steps.ops-smoke.outcome }}" }
+          $report = Join-Path $env:DSH_WINDOWS_ACL_REPORT_DIR 'smoke-profile.json'
+          if (-not (Test-Path -LiteralPath $report)) { $failures += 'current smoke-profile.json is missing' }
+          else {
+            $parsed = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
+            if ($parsed.passed -ne $true) { $failures += 'smoke-profile.json is not passed' }
+          }
+          if (-not $env:OPS_OBSERVER_JSON -or -not (Test-Path -LiteralPath $env:OPS_OBSERVER_JSON)) {
+            $failures += 'observer evidence is missing'
+          } else {
+            $observer = Get-Content -LiteralPath $env:OPS_OBSERVER_JSON -Raw | ConvertFrom-Json
+            if ($observer.runNonce -ne $env:OPS_RUN_NONCE) { $failures += 'observer nonce is not this run' }
+            if ($observer.expectedHead -ne $env:GITHUB_SHA) { $failures += 'observer head is not this checkout' }
+            $observations = @($observer.observations)
+            if ($observations.Count -ne 2) { $failures += "observer observations: $($observations.Count), expected 2" }
+            if (($observations | Select-Object -ExpandProperty pid -Unique).Count -ne 2) { $failures += 'observer observations are not two distinct processes' }
+            foreach ($observation in $observations) {
+              if ($observation.ok -ne $true) { $failures += "observer rejected a runtime: $($observation.runNonce)/$($observation.expectedHead)" }
+              if ($observation.runNonce -ne $env:OPS_RUN_NONCE) { $failures += 'observation nonce mismatch' }
+              if ($observation.expectedHead -ne $env:GITHUB_SHA) { $failures += 'observation head mismatch' }
+            }
+          }
+          [ordered]@{ failures = $failures; ok = ($failures.Count -eq 0) } |
+            ConvertTo-Json -Depth 3 | Set-Content -Encoding utf8 (Join-Path $env:DSH_WINDOWS_ACL_REPORT_DIR 'ops-gate.json')
+          if ($failures.Count -gt 0) { throw "Ops gate failed: $($failures -join '; ')" }
+
+      - name: Ops - run status
+        if: always() && inputs.run-ops-profile
+        shell: pwsh
+        run: |
+          [ordered]@{
+            head = $env:GITHUB_SHA
+            runId = $env:GITHUB_RUN_ID
+            runAttempt = $env:GITHUB_RUN_ATTEMPT
+            jobStatus = '${{ job.status }}'
+            outcomes = [ordered]@{
+              build = '${{ steps.ops-build.outcome }}'
+              archive = '${{ steps.ops-archive.outcome }}'
+              tools = '${{ steps.ops-tools.outcome }}'
+              binding = '${{ steps.ops-binding.outcome }}'
+              resources = '${{ steps.ops-resources.outcome }}'
+              smoke = '${{ steps.ops-smoke.outcome }}'
+              preserve = '${{ steps.ops-preserve.outcome }}'
+              gate = '${{ steps.ops-gate.outcome }}'
+            }
+            bindingReport = (Test-Path (Join-Path $env:DSH_WINDOWS_ACL_REPORT_DIR 'ops-host-binding.json'))
+            smokeReport = (Test-Path (Join-Path $env:DSH_WINDOWS_ACL_REPORT_DIR 'smoke-profile.json'))
+            observerReport = if ($env:OPS_OBSERVER_JSON) { Test-Path $env:OPS_OBSERVER_JSON } else { $false }
+          } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 (Join-Path $env:DSH_WINDOWS_ACL_REPORT_DIR 'ops-status.json')
+
       - name: Upload the native reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: windows-acl-native-redirect
-          path: native-redirect-reports
+          # Allowlisted JSON/text only: mode reports, pwsh evidence, FullControl
+          # ACL report, binding JSON, build limits and Ops status. Never the
+          # profile directory or an environment dump.
+          path: |
+            native-redirect-reports/*.json
+            native-redirect-reports/build-limits.txt
           if-no-files-found: warn
