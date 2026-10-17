@@ -6,6 +6,9 @@ import { officePackageDirectories } from '../../../scripts/libreoffice-packages.
  * from a community build.
  */
 const COMMUNITY_LINUX_UPDATE_ORIGIN = 'https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-updates-linux-x64/'
+
+/** Public community repository; the DEB target requires a project homepage. */
+const COMMUNITY_REPOSITORY_URL = 'https://github.com/Missher12/Missher-DeepseekHarness-Desktop'
 import { X509Certificate } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
@@ -124,6 +127,7 @@ export function createElectronBuilderConfig(
     protocols: [{ name: 'DeepSeek Harness', schemes: ['dsh'] }],
     extraMetadata: {
       dshDesktopAppId: appId,
+      ...(community && packagesLinux ? { homepage: COMMUNITY_REPOSITORY_URL } : {}),
       ...(community ? { dshCommunityDistribution: true } : {}),
       dshDesktopUpdateChannel: update?.channel ?? 'nightly',
       ...(policy === undefined ? {} : { dshMandatoryUpdatePolicy: policy }),
