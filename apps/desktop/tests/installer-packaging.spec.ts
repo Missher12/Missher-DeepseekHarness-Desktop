@@ -112,12 +112,14 @@ it('declares the community homepage only on the Linux DEB build', async () => {
   expect(homepage(linux)).toBe('https://github.com/Missher12/Missher-DeepseekHarness-Desktop')
   expect(linux.linux.maintainer).toBe('Missher12')
   expect(linux.linux.target).toEqual(['AppImage', 'deb'])
+  expect(linux.asar).toBe(false)
   const mac = createElectronBuilderConfig({
     DSH_DESKTOP_APP_ID: 'com.missher.deepseek-harness.intel.isolated',
     DSH_DESKTOP_COMMUNITY_BUILD: '1',
     DSH_DESKTOP_UNSIGNED: '1',
   }, 'darwin', 'x64')
   expect(homepage(mac)).toBeUndefined()
+  expect(mac.asar).toBe(true)
   const official = createElectronBuilderConfig({
     DSH_DESKTOP_APP_ID: 'com.deepseek.harness', DSH_DESKTOP_UNSIGNED: '1',
   }, 'darwin', 'x64')

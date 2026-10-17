@@ -8,6 +8,15 @@ import { runtimeFixture } from './runtime-fixture.ts'
 
 const windows = { platform: 'win32' as const, arch: 'x64' }
 
+it('keeps only the selected Linux glibc Office engine and omits its siblings', () => {
+  const linux = { platform: 'linux' as const, arch: 'x64' }
+  expect(desktopRuntimeFileExclusion('@deepseek-ai/libreoffice-kit-linux-x64-glibc/bin/libreoffice-kit', linux, 'linux-x64-glibc')).toBeUndefined()
+  expect(desktopRuntimeFileExclusion('@deepseek-ai/libreoffice-kit-linux-x64/bin/libreoffice-kit', linux, 'linux-x64-glibc'))
+    .toBe('LibreOffice other platform')
+  expect(desktopRuntimeFileExclusion('@deepseek-ai/libreoffice-kit-wasm/assets/soffice.data', linux, 'linux-x64-glibc'))
+    .toBe('LibreOffice other platform')
+})
+
 it('omits development artifacts while preserving executable modules, assets and license files', async () => {
   const root = mkdtempSync(join(tmpdir(), 'desktop-file-policy-'))
   const source = join(root, 'source')

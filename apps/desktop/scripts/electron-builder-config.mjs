@@ -138,7 +138,11 @@ export function createElectronBuilderConfig(
     // Unsigned builds carry their own suffix so a shared file can never pass for a release artifact.
     artifactName: `deepseek-harness-\${version}-\${os}-\${arch}${output.suffix}.\${ext}`,
     directories: { output: output.directory },
-    asar: true,
+    // Electron reports a missing path inside an ASAR archive as a null lstat
+    // entry, and the Office kit reads that as "package directory present but
+    // incomplete" instead of falling back to WASM. Linux ships the runtime as a
+    // real directory so the kit's probe and standalone Office process use real paths.
+    asar: resolvedPlatform !== 'linux',
     electronDist: buildPaths.electron,
     electronFuses: { runAsNode: true },
     beforeBuild: async () => {

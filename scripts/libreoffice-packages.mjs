@@ -6,13 +6,18 @@ import { isAbsolute, join, relative, sep } from 'node:path'
 
 /**
  * Require the declared native engine, or use WASM on other targets.
+ * Linux native engines are libc-qualified, and the kit resolves the glibc
+ * variant on glibc hosts before falling back to WASM; selecting the same
+ * variant keeps the installed closure instead of trimming it away.
  * @param {{ optionalDependencies?: Record<string, string> }} manifest - Installed kit manifest.
  * @param {{ platform: string, arch: string }} target - Distribution platform and CPU.
  * @returns {string} Engine package suffix.
  */
 export function selectOfficeEngine(manifest, target) {
   const native = `${target.platform}-${target.arch}`
-  return Object.hasOwn(manifest.optionalDependencies ?? {}, `@deepseek-ai/libreoffice-kit-${native}`) ? native : 'wasm'
+  const candidates = target.platform === 'linux' ? [`${native}-glibc`, native] : [native]
+  const declared = manifest.optionalDependencies ?? {}
+  return candidates.find(candidate => Object.hasOwn(declared, `@deepseek-ai/libreoffice-kit-${candidate}`)) ?? 'wasm'
 }
 
 /**
