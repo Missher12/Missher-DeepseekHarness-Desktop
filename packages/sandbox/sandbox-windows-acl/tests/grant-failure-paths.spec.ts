@@ -104,6 +104,7 @@ describe('AclWriteGrant failure paths', () => {
       }),
       createWellKnownSid: vi.fn(() => 1),
       isValidSid: vi.fn(() => 1),
+      localAlloc: vi.fn(() => 11n as NativePtr),
       localFree: vi.fn(() => 1n as NativePtr), // non-NULL: LocalFree "failed"
       getLastError: vi.fn(() => 87),
       formatMessageW: vi.fn(() => 0),
@@ -120,17 +121,23 @@ describe('AclWriteGrant failure paths', () => {
         return 1
       }),
       createWellKnownSid: vi.fn(() => 0),
+      localAlloc: vi.fn(() => 100n as NativePtr),
       localFree,
       getLastError: vi.fn(() => 87),
       formatMessageW: vi.fn(() => 0),
     })
     expect(() => AclWriteGrant.create('S-1-4-42-42', api)).toThrow(/CreateWellKnownSid/)
-    expect(localFree).toHaveBeenCalledWith(42n) // the parsed capability SID is not stranded
+    // Exactly two frees: the failed Low buffer (inside makeWellKnownSid) and
+    // the parsed capability SID the caller owns.
+    expect(localFree).toHaveBeenCalledTimes(2)
+    expect(localFree).toHaveBeenCalledWith(100n)
+    expect(localFree).toHaveBeenCalledWith(42n)
   })
 
   it('create frees both earlier SIDs when the world SID cannot be created', () => {
     const localFree = vi.fn(() => 0n as NativePtr)
     let calls = 0
+    let allocated = 0
     const api = stubBindings({
       convertStringSidToSidW: vi.fn((_sid: string, slot: NativePtr) => {
         koffi.encode(slot, PVOID, 42n)
@@ -138,12 +145,17 @@ describe('AclWriteGrant failure paths', () => {
       }),
       createWellKnownSid: vi.fn(() => (++calls === 1 ? 1 : 0)), // the Low label SID succeeds, the world SID fails
       isValidSid: vi.fn(() => 1),
+      localAlloc: vi.fn(() => (++allocated === 1 ? 100n as NativePtr : 200n as NativePtr)),
       localFree,
       getLastError: vi.fn(() => 87),
       formatMessageW: vi.fn(() => 0),
     })
     expect(() => AclWriteGrant.create('S-1-4-42-42', api)).toThrow(/CreateWellKnownSid/)
-    expect(localFree).toHaveBeenCalledTimes(2)
+    // Three frees, each pointer exactly once: the failed world buffer inside
+    // makeWellKnownSid, then the Low label SID and the capability SID.
+    expect(localFree).toHaveBeenCalledTimes(3)
+    expect(localFree).toHaveBeenCalledWith(200n)
+    expect(localFree).toHaveBeenCalledWith(100n)
     expect(localFree).toHaveBeenCalledWith(42n)
   })
 })

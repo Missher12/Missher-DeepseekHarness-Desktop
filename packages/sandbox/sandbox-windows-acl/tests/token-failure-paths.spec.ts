@@ -15,7 +15,8 @@ import koffi from 'koffi'
 import { allocBytes, isNullPtr } from '../src/ffi.ts'
 import type { NativePtr, Win32Bindings } from '../src/ffi.ts'
 import {
-  createRestrictedToken, findLogonSid, makeWellKnownSid, openCurrentProcessToken, restrictTokenIntegrity, setTokenDefaultDaclGrant,
+  createRestrictedToken, findLogonSid, findUserSid, makeWellKnownSid, openCurrentProcessToken,
+  restrictTokenIntegrity, setTokenDefaultDaclGrant,
 } from '../src/token.ts'
 import * as abi from '../src/win32-abi.ts'
 
@@ -136,6 +137,8 @@ function logonApi(state: {
     }),
     getLengthSid: vi.fn(() => state.sidLength ?? 12),
     copySid,
+    localAlloc: vi.fn(() => 500n),
+    localFree: vi.fn(() => 0n),
     getLastError: vi.fn(() => 5),
     formatMessageW: vi.fn(() => 0),
   } as unknown as Win32Bindings
@@ -227,6 +230,8 @@ describe('makeWellKnownSid failure paths', () => {
   it('reports when CreateWellKnownSid fails', () => {
     const api = {
       createWellKnownSid: vi.fn(() => 0),
+      localAlloc: vi.fn(() => 500n),
+      localFree: vi.fn(() => 0n),
       getLastError: vi.fn(() => 5),
       formatMessageW: vi.fn(() => 0),
     } as unknown as Win32Bindings
@@ -244,6 +249,8 @@ describe('makeWellKnownSid failure paths', () => {
     const api = {
       createWellKnownSid: vi.fn(() => 1),
       isValidSid: vi.fn(() => 0),
+      localAlloc: vi.fn(() => 500n),
+      localFree: vi.fn(() => 0n),
       getLastError: vi.fn(() => 5),
       formatMessageW: vi.fn(() => 0),
     } as unknown as Win32Bindings
@@ -259,6 +266,142 @@ describe('makeWellKnownSid failure paths', () => {
 })
 
 /**
+ * The stub the TokenUser read needs: the size probe writes `needed`, the read
+ * fills TOKEN_USER { SID_AND_ATTRIBUTES User; } with the state's SID pointer,
+ * and LocalAlloc hands out a distinct buffer so the copy target is visible.
+ */
+function userApi(state: {
+  needed?: number
+  secondOk?: boolean
+  sidPtr?: bigint
+  sidLength?: number
+  copyOk?: boolean
+  lastError?: number
+  cleanupChangesLastError?: boolean
+}): {
+  api: Win32Bindings
+  copySid: ReturnType<typeof vi.fn>
+  localFree: ReturnType<typeof vi.fn>
+  localAlloc: ReturnType<typeof vi.fn>
+} {
+  let lastError = state.lastError ?? 5
+  const copySid = vi.fn(() => (state.copyOk === false ? 0 : 1))
+  const localFree = vi.fn((): NativePtr => {
+    // A failing cleanup path changes GetLastError after the native failure.
+    if (state.cleanupChangesLastError === true) lastError = 87
+    return 0n as NativePtr
+  })
+  const localAlloc = vi.fn((): NativePtr => 500n as NativePtr)
+  // Only the members this test drives; the shared helper supplies the type.
+  const api = stubBindings({
+    localAlloc,
+    localFree,
+    getTokenInformation: vi.fn((_token: unknown, cls: number, info: Buffer | null, _length: number, needed: NativePtr) => {
+      if (cls !== abi.TokenUser) throw new Error(`unexpected token information class ${cls}`)
+      if (info === null) {
+        koffi.encode(needed, 'uint32', state.needed ?? abi.SID_AND_ATTRIBUTES_SIZE)
+        return 0 // the size probe is expected to "fail"
+      }
+      if (state.secondOk === false) return 0
+      info.writeBigUInt64LE(state.sidPtr ?? 79n, 0)
+      info.writeUInt32LE(0, 8)
+      return 1
+    }),
+    getLengthSid: vi.fn(() => state.sidLength ?? 12),
+    copySid,
+    getLastError: vi.fn(() => lastError),
+    formatMessageW: vi.fn(() => 0),
+  })
+  return { api, copySid, localFree, localAlloc }
+}
+
+describe('findUserSid failure paths', () => {
+  const token = 9n as NativePtr
+
+  it('reports a size probe that wrote nothing', () => {
+    const { api } = userApi({ needed: 0 })
+    expect(() => findUserSid(api, token)).toThrow(Win32Error)
+    let caught: unknown
+    try {
+      findUserSid(api, token)
+    } catch (error) {
+      caught = error
+    }
+    expect((caught as Win32Error).api).toBe('GetTokenInformation')
+  })
+
+  it('rejects a size too small for SID_AND_ATTRIBUTES', () => {
+    const { api } = userApi({ needed: 8 })
+    let caught: unknown
+    try {
+      findUserSid(api, token)
+    } catch (error) {
+      caught = error
+    }
+    expect(caught).toBeInstanceOf(Win32Error)
+    expect((caught as Win32Error).message).toMatch(/implausible TokenUser size 8/u)
+  })
+
+  it('reports a failed TokenUser read', () => {
+    const { api } = userApi({ secondOk: false })
+    let caught: unknown
+    try {
+      findUserSid(api, token)
+    } catch (error) {
+      caught = error
+    }
+    expect((caught as Win32Error).api).toBe('GetTokenInformation')
+  })
+
+  it('rejects a NULL user SID pointer', () => {
+    const { api } = userApi({ sidPtr: 0n })
+    let caught: unknown
+    try {
+      findUserSid(api, token)
+    } catch (error) {
+      caught = error
+    }
+    expect((caught as Win32Error).api).toBe('GetTokenInformation')
+  })
+
+  it('reports a zero-length user SID', () => {
+    const { api } = userApi({ sidLength: 0 })
+    let caught: unknown
+    try {
+      findUserSid(api, token)
+    } catch (error) {
+      caught = error
+    }
+    expect((caught as Win32Error).api).toBe('GetLengthSid')
+  })
+
+  it('keeps the CopySid error code when the cleanup changes GetLastError, and frees the buffer', () => {
+    const { api, localFree } = userApi({ copyOk: false, lastError: 1234, cleanupChangesLastError: true })
+    let caught: unknown
+    try {
+      findUserSid(api, token)
+    } catch (error) {
+      caught = error
+    }
+    expect(caught).toBeInstanceOf(Win32Error)
+    expect((caught as Win32Error).api).toBe('CopySid')
+    // The cleanup ran (and changed the thread's last error) but the reported
+    // code is still the CopySid failure.
+    expect((caught as Win32Error).win32Code).toBe(1234)
+    expect(localFree).toHaveBeenCalledWith(500n)
+  })
+
+  it('returns a LocalAlloc-owned copy on success', () => {
+    const { api, copySid, localFree, localAlloc } = userApi({})
+    expect(findUserSid(api, token)).toBe(500n)
+    expect(copySid).toHaveBeenCalledWith(12, 500n, 79n)
+    expect(localAlloc).toHaveBeenCalledWith(abi.LPTR, 12)
+    // The caller owns the SID from here; the helper must not free it.
+    expect(localFree).not.toHaveBeenCalled()
+  })
+})
+
+/**
  * The stub the default-DACL merge needs: the size probe writes `needed`, the
  * second call fills the DACL pointer slot, and the merge/apply calls follow
  * the state's results.
@@ -268,31 +411,50 @@ function daclApi(state: {
   currentDacl: bigint
   secondOk?: boolean
   mergeResult?: number
+  mergeResults?: readonly number[]
   newDacl: bigint
   setTokenInfo?: number
-}): Win32Bindings {
-  const api = {
-    getTokenInformation: vi.fn((_token: unknown, cls: number, info: Buffer | null, _length: number, needed: NativePtr) => {
-      if (cls !== abi.TokenDefaultDacl) throw new Error(`unexpected token information class ${cls}`)
-      if (info === null) {
-        koffi.encode(needed, 'uint32', state.needed)
-        return 0 // the size probe is expected to "fail"
-      }
-      if (state.secondOk === false) return 0
-      info.writeBigUInt64LE(state.currentDacl, 0)
-      return 1
-    }),
-    setEntriesInAclW: vi.fn((_count: unknown, _entries: unknown, _old: unknown, newAcl: NativePtr) => {
-      if (state.mergeResult !== undefined && state.mergeResult !== 0) return state.mergeResult
-      koffi.encode(newAcl, PVOID, state.newDacl)
-      return 0
-    }),
-    setTokenInformation: vi.fn(() => state.setTokenInfo ?? 1),
-    localFree: vi.fn(() => 0n),
+  mergedSids?: NativePtr[]
+}, captured: {
+  setTokenInformation?: ReturnType<typeof vi.fn>
+  getTokenInformation?: ReturnType<typeof vi.fn>
+  localFree?: ReturnType<typeof vi.fn>
+} = {}): Win32Bindings {
+  // Typed mocks first: the same variables go into the stub and the sink, so no
+  // reference is taken off an already-erased Win32Bindings method.
+  const getTokenInformation = vi.fn((_token: unknown, cls: number, info: Buffer | null, _length: number, needed: NativePtr) => {
+    if (cls !== abi.TokenDefaultDacl) throw new Error(`unexpected token information class ${cls}`)
+    if (info === null) {
+      koffi.encode(needed, 'uint32', state.needed)
+      return 0 // the size probe is expected to "fail"
+    }
+    if (state.secondOk === false) return 0
+    info.writeBigUInt64LE(state.currentDacl, 0)
+    return 1
+  })
+  const setEntriesInAclW = vi.fn((_count: unknown, entries: Buffer, _old: unknown, newAcl: NativePtr) => {
+    // EXPLICIT_ACCESS_W: Trustee.ptstrName (the SID) sits at offset 40.
+    state.mergedSids?.push(entries.readBigUInt64LE(40) as NativePtr)
+    const result = state.mergeResults?.[state.mergedSids?.length === undefined ? 0 : state.mergedSids.length - 1]
+    if (result !== undefined && result !== 0) return result
+    if (state.mergeResult !== undefined && state.mergeResult !== 0) return state.mergeResult
+    koffi.encode(newAcl, PVOID, state.newDacl)
+    return 0
+  })
+  const setTokenInformation = vi.fn(() => state.setTokenInfo ?? 1)
+  const localFree = vi.fn((): NativePtr => 0n as NativePtr)
+  captured.setTokenInformation = setTokenInformation as ReturnType<typeof vi.fn>
+  captured.getTokenInformation = getTokenInformation as ReturnType<typeof vi.fn>
+  captured.localFree = localFree as ReturnType<typeof vi.fn>
+  // Only the members these tests drive; the shared helper supplies the type.
+  return stubBindings({
+    getTokenInformation,
+    setEntriesInAclW,
+    setTokenInformation,
+    localFree,
     getLastError: vi.fn(() => 5),
     formatMessageW: vi.fn(() => 0),
-  } as unknown as Win32Bindings
-  return api
+  })
 }
 
 describe('setTokenDefaultDaclGrant failure paths', () => {
@@ -303,7 +465,7 @@ describe('setTokenDefaultDaclGrant failure paths', () => {
     const api = daclApi({ needed: 0, currentDacl: 0n, newDacl: 0n })
     let caught: unknown
     try {
-      setTokenDefaultDaclGrant(api, token, sid)
+      setTokenDefaultDaclGrant(api, token, [sid])
     } catch (error) {
       caught = error
     }
@@ -315,7 +477,7 @@ describe('setTokenDefaultDaclGrant failure paths', () => {
     const api = daclApi({ needed: 8, currentDacl: 88n, secondOk: false, newDacl: 0n })
     let caught: unknown
     try {
-      setTokenDefaultDaclGrant(api, token, sid)
+      setTokenDefaultDaclGrant(api, token, [sid])
     } catch (error) {
       caught = error
     }
@@ -325,14 +487,14 @@ describe('setTokenDefaultDaclGrant failure paths', () => {
 
   it('rejects a token that carries no default DACL', () => {
     const api = daclApi({ needed: 8, currentDacl: 0n, newDacl: 0n })
-    expect(() => { setTokenDefaultDaclGrant(api, token, sid) }).toThrow(/no default DACL/u)
+    expect(() => { setTokenDefaultDaclGrant(api, token, [sid]) }).toThrow(/no default DACL/u)
   })
 
   it('reports a failed SetEntriesInAclW merge', () => {
     const api = daclApi({ needed: 8, currentDacl: 88n, mergeResult: 5, newDacl: 0n })
     let caught: unknown
     try {
-      setTokenDefaultDaclGrant(api, token, sid)
+      setTokenDefaultDaclGrant(api, token, [sid])
     } catch (error) {
       caught = error
     }
@@ -344,7 +506,7 @@ describe('setTokenDefaultDaclGrant failure paths', () => {
     const api = daclApi({ needed: 8, currentDacl: 88n, newDacl: 0n })
     let caught: unknown
     try {
-      setTokenDefaultDaclGrant(api, token, sid)
+      setTokenDefaultDaclGrant(api, token, [sid])
     } catch (error) {
       caught = error
     }
@@ -358,7 +520,7 @@ describe('setTokenDefaultDaclGrant failure paths', () => {
     ;(api.localFree as unknown as ReturnType<typeof vi.fn>).mockImplementation(localFree)
     let caught: unknown
     try {
-      setTokenDefaultDaclGrant(api, token, sid)
+      setTokenDefaultDaclGrant(api, token, [sid])
     } catch (error) {
       caught = error
     }
@@ -367,11 +529,54 @@ describe('setTokenDefaultDaclGrant failure paths', () => {
     expect(localFree).toHaveBeenCalledWith(99n)
   })
 
+  it('merges the enabled-pass user SID and the restricting-pass capability SID in order', () => {
+    const userSid = 101n as NativePtr
+    const capabilitySid = 202n as NativePtr
+    const mergedSids: NativePtr[] = []
+    const captured: { setTokenInformation?: ReturnType<typeof vi.fn> } = {}
+    const api = daclApi({ needed: 8, currentDacl: 88n, newDacl: 99n, mergedSids }, captured)
+    setTokenDefaultDaclGrant(api, token, [userSid, capabilitySid])
+    // Two merges, the ordinary identity first: a capability-only ACE fails the
+    // enabled pass and denied CreatePipe under workspace-write.
+    expect(mergedSids).toEqual([userSid, capabilitySid])
+    expect(captured.setTokenInformation).toHaveBeenCalledTimes(1)
+  })
+
+  it('frees both intermediate ACLs and reports when the second merge fails', () => {
+    const localFree = vi.fn(() => 0n)
+    const mergedSids: NativePtr[] = []
+    const captured: {
+      localFree?: ReturnType<typeof vi.fn>
+      setTokenInformation?: ReturnType<typeof vi.fn>
+    } = {}
+    const api = daclApi({
+      needed: 8, currentDacl: 88n, newDacl: 99n, mergedSids, mergeResults: [0, 5],
+    }, captured)
+    captured.localFree?.mockImplementation(localFree)
+    let caught: unknown
+    try {
+      setTokenDefaultDaclGrant(api, 9n as NativePtr, [101n as NativePtr, 202n as NativePtr])
+    } catch (error) {
+      caught = error
+    }
+    expect(caught).toBeInstanceOf(Win32Error)
+    expect((caught as Win32Error).api).toBe('SetEntriesInAclW')
+    expect(localFree).toHaveBeenCalledWith(99n)
+    expect(captured.setTokenInformation).not.toHaveBeenCalled()
+  })
+
+  it('rejects an empty SID list before touching the token', () => {
+    const captured: { getTokenInformation?: ReturnType<typeof vi.fn> } = {}
+    const api = daclApi({ needed: 8, currentDacl: 88n, newDacl: 99n }, captured)
+    expect(() => { setTokenDefaultDaclGrant(api, token, []) }).toThrow(/at least one SID/u)
+    expect(captured.getTokenInformation).not.toHaveBeenCalled()
+  })
+
   it('frees the merged DACL after a successful apply', () => {
     const localFree = vi.fn(() => 0n)
     const api = daclApi({ needed: 8, currentDacl: 88n, newDacl: 99n })
     ;(api.localFree as unknown as ReturnType<typeof vi.fn>).mockImplementation(localFree)
-    setTokenDefaultDaclGrant(api, token, sid)
+    setTokenDefaultDaclGrant(api, token, [sid])
     expect(localFree).toHaveBeenCalledWith(99n)
   })
 })

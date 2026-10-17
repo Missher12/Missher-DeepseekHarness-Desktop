@@ -1,12 +1,14 @@
 name: Windows Host narrow validation
 
 # Manual, narrow Windows lane for the redirect-handle primitives behind the
-# reported NativeErrorCode=5. It runs ONE opt-in regression case from the
-# existing sandbox-windows-acl runner suite under the real restricted token and
-# asserts the native CreatePipe and DuplicateHandle (SAME_ACCESS, current
-# process, non-inheritable parent end) return codes. It exists so this
-# signature can be reproduced on real Windows without triggering the broad PR
-# lanes (ci.yml) or the full-installer windows-package job.
+# reported NativeErrorCode=5. It runs the existing sandbox-windows-acl runner
+# suite under the real restricted token: the two opt-in redirect probes (native
+# CreatePipe + DuplicateHandle(SAME_ACCESS, current process, non-inheritable
+# parent end) in both modes, and a confined pwsh doing ProcessStartInfo
+# redirection plus npm.ps1 prefix resolution) together with the suite's own
+# safety matrix. It exists so this signature can be reproduced on real Windows
+# without triggering the broad PR lanes (ci.yml) or the full-installer
+# windows-package job.
 #
 # Nothing else runs here: no other package tests, no installer, no bundle or
 # compile build step. The scoped dependency install does run the closure's
@@ -88,26 +90,41 @@ jobs:
         shell: pwsh
         run: pnpm install --frozen-lockfile --filter @deepseek-ai/dsh-sandbox-windows-acl...
 
-      - name: Run the native redirect probe
+      # The whole runner suite runs: the two opt-in redirect probes plus the
+      # cases this file actually owns — workspace/private-temp write boundaries,
+      # refused external/sibling directories, the Public-tree probe, the
+      # read-only standing-grant downgrade, and Node inherited/ignore success
+      # with named-pipe capture DENIED. Job kill/cancel ownership and ordinary
+      # unrestricted spawn live in the package's process/exit specs, not in this
+      # file, so this lane does not claim them until a step adds them.
+      - name: Run the runner suite and both redirect probes
         shell: pwsh
         run: |
-          pnpm exec vitest run --no-file-parallelism --maxWorkers=1 --testTimeout 90000 `
+          pnpm exec vitest run --no-file-parallelism --maxWorkers=1 --testTimeout 120000 `
             --reporter=json --outputFile="$env:DSH_WINDOWS_ACL_REPORT_DIR/vitest.json" `
-            -t "creates the redirect pipe" `
             packages/sandbox/sandbox-windows-acl/tests/runner.spec.ts
 
       # A skipped case proves nothing. The per-mode native reports are written
       # by the case before it asserts, so both modes remain readable here even
       # when one of them failed.
-      - name: Require the case to have run and passed
+      - name: Require every case to have run and passed
         if: always()
         shell: pwsh
         run: |
           $report = Get-Content "$env:DSH_WINDOWS_ACL_REPORT_DIR/vitest.json" -Raw | ConvertFrom-Json
-          $case = $report.testResults.assertionResults |
-            Where-Object { $_.title -eq 'creates the redirect pipe and the non-inheritable parent copy under the restricted token' }
-          if (-not $case) { throw 'the native redirect case did not run (skipped or filtered out)' }
-          if ($case.status -ne 'passed') { throw "the native redirect case reported $($case.status): $($case.failureMessages -join '; ')" }
+          $required = @(
+            'creates the redirect pipe and the non-inheritable parent copy under the restricted token',
+            'runs PowerShell 7 redirect evidence under the restricted token'
+          )
+          foreach ($title in $required) {
+            $case = $report.testResults.assertionResults | Where-Object { $_.title -eq $title }
+            if (-not $case) { throw "case did not run (skipped or filtered out): $title" }
+            if ($case.status -ne 'passed') { throw "case reported $($case.status): $title - $($case.failureMessages -join '; ')" }
+          }
+          # The safety matrix must not silently disappear: no skipped case and
+          # no failure anywhere in the suite.
+          if ($report.numPendingTests -ne 0) { throw "skipped tests: $($report.numPendingTests)" }
+          if ($report.numFailedTests -ne 0) { throw "failed tests: $($report.numFailedTests)" }
           foreach ($mode in @('workspace-write', 'read-only')) {
             $native = Join-Path $env:DSH_WINDOWS_ACL_REPORT_DIR "$mode.json"
             if (-not (Test-Path $native)) { throw "missing native report for $mode" }
@@ -115,7 +132,17 @@ jobs:
             if (-not $parsed.report) { throw "native report for $mode carries no structured result: $($parsed.parseError)" }
             if ($parsed.report.ok -ne $true) { throw "native report for $mode is not ok: $($parsed.report.failures -join '; ')" }
           }
-          if ($report.numFailedTests -ne 0) { throw "failed tests: $($report.numFailedTests)" }
+          $pwsh = Join-Path $env:DSH_WINDOWS_ACL_REPORT_DIR 'pwsh-redirect.json'
+          if (-not (Test-Path $pwsh)) { throw 'missing pwsh redirect evidence' }
+          # The case writes an envelope: status/signal/parseError/evidence plus
+          # scrubbed transcripts. Read the envelope first, then its evidence.
+          $envelope = Get-Content $pwsh -Raw | ConvertFrom-Json
+          if ($envelope.status -ne 0) { throw "confined pwsh exited $($envelope.status) (signal $($envelope.signal)): $($envelope.stderr)" }
+          if ($null -ne $envelope.signal) { throw "confined pwsh reported signal $($envelope.signal)" }
+          if (-not [string]::IsNullOrEmpty($envelope.parseError)) { throw "pwsh evidence unreadable: $($envelope.parseError)" }
+          if ($null -eq $envelope.evidence) { throw 'pwsh evidence envelope carries no evidence object' }
+          if ($envelope.evidence.ok -ne $true) { throw "pwsh redirect evidence is not ok: $($envelope.evidence.failure)" }
+          if (-not $envelope.evidence.npmScript.isScript) { throw 'npm did not resolve to npm.ps1' }
 
       - name: Upload the native reports
         if: always()

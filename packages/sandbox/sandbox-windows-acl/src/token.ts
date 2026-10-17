@@ -7,7 +7,7 @@
  * @module @deepseek-ai/dsh-sandbox-windows-acl/token
  */
 
-import { allocBytes, allocPtrSlot, allocUint32, decodePtr, decodePtrAt, decodeUint32, encodeUint32, isNullPtr, ptrAddress, throwLastError, throwWin32 } from './ffi.ts'
+import { allocPtrSlot, allocUint32, decodePtr, decodePtrAt, decodeUint32, encodeUint32, isNullPtr, ptrAddress, throwLastError, throwWin32 } from './ffi.ts'
 import type { NativePtr, Win32Bindings } from './ffi.ts'
 import { buildExplicitAccess } from './acl.ts'
 import * as abi from './win32-abi.ts'
@@ -42,6 +42,24 @@ export function openCurrentProcessToken(api: Win32Bindings): NativePtr {
 }
 
 /**
+ * Allocate one SID buffer with LocalAlloc.
+ *
+ * The SID pointers this module returns are released through LocalFree
+ * (`freeSidBestEffort` in the sandbox dispose and init-failure paths), so they
+ * must come from the same allocator family; Koffi's own `alloc` is a different
+ * family and is not used here.
+ * @param api - the binding table.
+ * @param length - bytes to allocate (zeroed).
+ * @returns the allocated SID buffer.
+ * @throws when LocalAlloc returns NULL.
+ */
+function allocSidBuffer(api: Win32Bindings, length: number): NativePtr {
+  const buffer = api.localAlloc(abi.LPTR, length)
+  if (isNullPtr(buffer)) throwLastError(api, 'LocalAlloc', `SID buffer (${length} bytes)`)
+  return buffer
+}
+
+/**
  * Find and copy the token's logon session SID (S-1-5-5-x-y, attribute
  * SE_GROUP_LOGON_ID). The restricted token needs it for WinSta0/desktop and
  * other per-logon objects; the POC extracts it the same way.
@@ -69,11 +87,53 @@ export function findLogonSid(api: Win32Bindings, token: NativePtr): NativePtr {
     if (sidPtr === null || !isLogonId) continue
     const sidLength = api.getLengthSid(sidPtr)
     if (sidLength === 0) throwLastError(api, 'GetLengthSid', `logon SID group ${index}`)
-    const copy = allocBytes(sidLength)
-    if (api.copySid(sidLength, copy, sidPtr) === 0) throwLastError(api, 'CopySid', `logon SID group ${index}`)
+    const copy = allocSidBuffer(api, sidLength)
+    if (api.copySid(sidLength, copy, sidPtr) === 0) {
+      // Save the CopySid code before freeing: cleanup calls overwrite GetLastError.
+      const win32Code = api.getLastError()
+      api.localFree(copy)
+      throwWin32(api, 'CopySid', win32Code, `logon SID group ${index}`)
+    }
     return copy
   }
   throw new Error(`CreateRestrictedToken prerequisite failed: no logon SID found among ${groupCount} token groups`)
+}
+
+/**
+ * Copy the token's user SID (TOKEN_INFORMATION_CLASS TokenUser).
+ *
+ * This is the ordinary identity the enabled-SID pass of a write-restricted
+ * token still holds. It must never enter the restricting list: it is the
+ * account, not a capability.
+ * @param api - the binding table.
+ * @param token - the token to read.
+ * @returns a copied user SID (thrown when the token carries none).
+ */
+export function findUserSid(api: Win32Bindings, token: NativePtr): NativePtr {
+  const neededSlot = allocUint32()
+  api.getTokenInformation(token, abi.TokenUser, null, 0, neededSlot) // expected to fail with ERROR_INSUFFICIENT_BUFFER
+  const needed = decodeUint32(neededSlot)
+  if (needed === 0) throwLastError(api, 'GetTokenInformation', 'TokenUser size query')
+  if (needed < abi.SID_AND_ATTRIBUTES_SIZE) {
+    throwWin32(api, 'GetTokenInformation', api.getLastError(), `implausible TokenUser size ${needed}`)
+  }
+  const buffer = Buffer.alloc(needed)
+  if (api.getTokenInformation(token, abi.TokenUser, buffer, buffer.length, neededSlot) === 0) {
+    throwLastError(api, 'GetTokenInformation', 'TokenUser')
+  }
+  // TOKEN_USER { SID_AND_ATTRIBUTES User; } — the SID pointer is at offset 0.
+  const sidPtr = decodePtrAt(buffer, 0)
+  if (sidPtr === null) throwWin32(api, 'GetTokenInformation', api.getLastError(), 'null TokenUser SID')
+  const sidLength = api.getLengthSid(sidPtr)
+  if (sidLength === 0) throwLastError(api, 'GetLengthSid', 'user SID')
+  const copy = allocSidBuffer(api, sidLength)
+  if (api.copySid(sidLength, copy, sidPtr) === 0) {
+    // Save the CopySid code before freeing: cleanup calls overwrite GetLastError.
+    const win32Code = api.getLastError()
+    api.localFree(copy)
+    throwWin32(api, 'CopySid', win32Code, 'user SID')
+  }
+  return copy
 }
 
 /**
@@ -83,13 +143,19 @@ export function findLogonSid(api: Win32Bindings, token: NativePtr): NativePtr {
  * @returns the created SID pointer.
  */
 export function makeWellKnownSid(api: Win32Bindings, type: number): NativePtr {
-  const sid = allocBytes(abi.SECURITY_MAX_SID_SIZE)
+  const sid = allocSidBuffer(api, abi.SECURITY_MAX_SID_SIZE)
   const sizeSlot = allocUint32()
   encodeUint32(sizeSlot, abi.SECURITY_MAX_SID_SIZE)
   if (api.createWellKnownSid(type, null, sid, sizeSlot) === 0) {
-    throwLastError(api, 'CreateWellKnownSid', `type ${type}`)
+    const win32Code = api.getLastError()
+    api.localFree(sid)
+    throwWin32(api, 'CreateWellKnownSid', win32Code, `type ${type}`)
   }
-  if (api.isValidSid(sid) === 0) throwLastError(api, 'IsValidSid', `CreateWellKnownSid type ${type}`)
+  if (api.isValidSid(sid) === 0) {
+    const win32Code = api.getLastError()
+    api.localFree(sid)
+    throwWin32(api, 'IsValidSid', win32Code, `CreateWellKnownSid type ${type}`)
+  }
   return sid
 }
 
@@ -105,11 +171,20 @@ export function makeWellKnownSid(api: Win32Bindings, type: number): NativePtr {
  * object's own DACL passes pass-2 while object creation itself stays gated by
  * the parent container's DACL (files outside the granted trees remain
  * uncreatable). Fails closed: any Win32 failure throws before the spawn.
+ *
+ * A write-restricted token passes two access checks for every new object: its
+ * enabled SIDs, then its restricting SIDs, and both passes need an applicable
+ * grant. A capability SID satisfies only the restricting pass; the token's own
+ * user SID satisfies the enabled pass, because LUA_TOKEN/DISABLE_MAX_PRIVILEGE
+ * make the Administrators groups deny-only and the inherited default DACL lacks
+ * object-specific permission for an identity that pass can use. Both are merged
+ * here; the user SID never enters the restricting list.
  * @param api - the binding table.
  * @param token - the restricted token to adjust (requires TOKEN_ADJUST_DEFAULT).
- * @param sidPtr - the restricting SID whose full-access ACE joins the default DACL.
+ * @param sids - SIDs that each receive FILE_ALL_ACCESS, in merge order.
  */
-export function setTokenDefaultDaclGrant(api: Win32Bindings, token: NativePtr, sidPtr: NativePtr): void {
+export function setTokenDefaultDaclGrant(api: Win32Bindings, token: NativePtr, sids: readonly NativePtr[]): void {
+  if (sids.length === 0) throw new Error('setTokenDefaultDaclGrant: at least one SID is required')
   const neededSlot = allocUint32()
   api.getTokenInformation(token, abi.TokenDefaultDacl, null, 0, neededSlot) // expected to fail with ERROR_INSUFFICIENT_BUFFER
   const needed = decodeUint32(neededSlot)
@@ -122,26 +197,36 @@ export function setTokenDefaultDaclGrant(api: Win32Bindings, token: NativePtr, s
   if (currentDacl === null) {
     throw new Error('setTokenDefaultDaclGrant: the token carries no default DACL to extend')
   }
-  const newDaclSlot = allocPtrSlot()
-  const result = api.setEntriesInAclW(
-    1,
-    buildExplicitAccess(sidPtr, abi.GRANT_ACCESS, abi.FILE_ALL_ACCESS),
-    currentDacl,
-    newDaclSlot,
-  )
-  if (result !== abi.ERROR_SUCCESS) throwWin32(api, 'SetEntriesInAclW', result, 'default DACL merge')
-  const newDacl = decodePtr(newDaclSlot)
-  if (newDacl === null) throwWin32(api, 'SetEntriesInAclW', result, 'null merged default DACL')
-  // TOKEN_DEFAULT_DACL { PACL DefaultDacl; } — the struct is exactly the
-  // pointer; SetTokenInformation copies the ACL before returning.
-  const info = Buffer.alloc(8)
-  info.writeBigUInt64LE(newDacl, 0)
-  if (api.setTokenInformation(token, abi.TokenDefaultDacl, info, info.length) === 0) {
-    const win32Code = api.getLastError()
-    api.localFree(newDacl)
-    throwWin32(api, 'SetTokenInformation', win32Code, 'TokenDefaultDacl')
+  let dacl = currentDacl
+  let merged: NativePtr | undefined
+  try {
+    for (const sidPtr of sids) {
+      const newDaclSlot = allocPtrSlot()
+      const result = api.setEntriesInAclW(
+        1,
+        buildExplicitAccess(sidPtr, abi.GRANT_ACCESS, abi.FILE_ALL_ACCESS),
+        dacl,
+        newDaclSlot,
+      )
+      if (result !== abi.ERROR_SUCCESS) throwWin32(api, 'SetEntriesInAclW', result, 'default DACL merge')
+      const next = decodePtr(newDaclSlot)
+      if (next === null) throwWin32(api, 'SetEntriesInAclW', result, 'null merged default DACL')
+      // The previous intermediate ACL is unreferenced once its successor
+      // exists; the token query buffer owns the original one.
+      if (merged !== undefined) api.localFree(merged)
+      merged = next
+      dacl = next
+    }
+    // TOKEN_DEFAULT_DACL { PACL DefaultDacl; } — the struct is exactly the
+    // pointer; SetTokenInformation copies the ACL before returning.
+    const info = Buffer.alloc(8)
+    info.writeBigUInt64LE(dacl, 0)
+    if (api.setTokenInformation(token, abi.TokenDefaultDacl, info, info.length) === 0) {
+      throwWin32(api, 'SetTokenInformation', api.getLastError(), 'TokenDefaultDacl')
+    }
+  } finally {
+    if (merged !== undefined) api.localFree(merged)
   }
-  api.localFree(newDacl)
 }
 
 /**

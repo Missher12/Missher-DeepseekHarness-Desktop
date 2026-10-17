@@ -8,7 +8,7 @@
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -19,6 +19,7 @@ import { AclWriteGrant, tempWriteSid, workspaceWriteSid } from '../src/index.ts'
 const isWin32 = process.platform === 'win32'
 const runnerEntry = fileURLToPath(new URL('../src/runner.ts', import.meta.url))
 const nativePipeProbe = fileURLToPath(new URL('./fixtures/win32-pipe-redirect-probe.mjs', import.meta.url))
+const pwshRedirectProbe = fileURLToPath(new URL('./fixtures/win32-pwsh-redirect-probe.ps1', import.meta.url))
 const koffiPath = createRequire(import.meta.url).resolve('koffi')
 // The native redirect probe is opt-in: the broad Windows PR lane keeps its
 // current coverage, and the narrow manual lane sets this to run the two
@@ -37,6 +38,16 @@ function runRunner(args: string[], timeoutMs = 30_000) {
     timeout: timeoutMs,
     encoding: 'utf8',
   })
+}
+
+/** Structured evidence the confined PowerShell probe writes for the lane. */
+interface PwshRedirectEvidence {
+  frameworkDescription: string | null
+  processStartInfo: { exitCode: number; stdout: string; stderr: string; redirect: boolean } | null
+  npmScript: { commandType: string; source: string; isScript: boolean } | null
+  npmPrefix: { value: string; exitCode: number } | null
+  failure: string | null
+  ok: boolean
 }
 
 /** Structured report the native probe prints for one restricted mode. */
@@ -443,6 +454,81 @@ describe.skipIf(!isWin32 || !pwshAvailable())('windows-acl runner', () => {
         expect(run.status, details(run)).toBe(0)
       }
     }, 30_000)
+
+  it.skipIf(!runNativePipeProbe)(
+    'runs PowerShell 7 redirect evidence under the restricted token', () => {
+      // The .NET surface that raised NativeErrorCode=5 in production: a real
+      // pwsh process, confined by this runner, doing ProcessStartInfo
+      // redirection and resolving npm through its .ps1 script. The evidence is
+      // captured before any assertion so a failing run still leaves the JSON
+      // and a scrubbed transcript for the artifact.
+      const evidencePath = join(writableDir, 'pwsh-redirect-evidence.json')
+      const result = runRunner([
+        '--workspace', writableDir, '--temp', isolatedTemp, '--mode', 'workspace-write',
+        '--', resolvePwshPath(), '-NoLogo', '-NoProfile', '-NonInteractive',
+        '-File', pwshRedirectProbe, '-OutFile', evidencePath,
+      ], 60_000)
+      const reportDir = process.env.DSH_WINDOWS_ACL_REPORT_DIR === undefined
+        ? join(scratchRoot, 'native-redirect-reports')
+        : resolve(process.cwd(), process.env.DSH_WINDOWS_ACL_REPORT_DIR)
+      mkdirSync(reportDir, { recursive: true })
+      // Keep every persisted string free of fixture and host paths: the JSON
+      // envelope escapes backslashes, so the scrub runs on the values before
+      // serialization, recursively. The in-memory evidence stays exact for the
+      // assertions below.
+      const roots = [scratchRoot, writableDir, isolatedTemp, process.cwd(), homedir()]
+        .filter(value => value !== '')
+      const scrubText = (text: string): string => roots
+        .reduce((current, value) => current.replaceAll(value, '<fixture>'), text)
+      const scrub = (value: unknown): unknown => {
+        if (typeof value === 'string') return scrubText(value)
+        if (Array.isArray(value)) return value.map(item => scrub(item))
+        if (value !== null && typeof value === 'object') {
+          return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, scrub(item)]))
+        }
+        return value
+      }
+      const raw = existsSync(evidencePath) ? readFileSync(evidencePath, 'utf8') : undefined
+      let evidence: PwshRedirectEvidence | undefined
+      let parseError: string | undefined
+      if (raw === undefined) {
+        parseError = 'the confined pwsh probe wrote no evidence file'
+      } else {
+        try {
+          evidence = JSON.parse(raw) as PwshRedirectEvidence
+        } catch (error) {
+          parseError = `unreadable pwsh evidence: ${error instanceof Error ? error.message : String(error)}`
+        }
+      }
+      writeFileSync(join(reportDir, 'pwsh-redirect.json'), JSON.stringify(scrub({
+        status: result.status,
+        signal: result.signal,
+        parseError,
+        evidence,
+        stdout: result.stdout ?? '',
+        stderr: result.stderr ?? '',
+      }), null, 2))
+      const detail = `status ${String(result.status)}\nstdout: ${scrubText(result.stdout ?? '')}\nstderr: ${scrubText(result.stderr ?? '')}`
+      expect(parseError, detail).toBeUndefined()
+      if (evidence === undefined) throw new Error(detail)
+      // A signal means the runner tore the child down (timeout/cancel), which
+      // is not the completion this case is about.
+      expect(result.signal, detail).toBeNull()
+      expect(result.status, detail).toBe(0)
+      expect(evidence.failure, detail).toBeNull()
+      expect(evidence.frameworkDescription, detail).toMatch(/\.NET \d+/u)
+      expect(evidence.processStartInfo, detail).toMatchObject({
+        redirect: true,
+        exitCode: 7,
+        stdout: 'PSI_STDOUT_OK',
+        stderr: 'PSI_STDERR_OK',
+      })
+      expect(evidence.npmScript?.isScript, detail).toBe(true)
+      expect(evidence.npmScript?.source, detail).toMatch(/npm\.ps1$/u)
+      expect(evidence.npmPrefix?.exitCode, detail).toBe(0)
+      expect(evidence.npmPrefix?.value, detail).not.toBe('')
+      expect(evidence.ok, detail).toBe(true)
+    }, 90_000)
 
   it('mode-downgrade leak regression: a STANDING workspace grant is inert under read-only and effective again on re-upgrade', () => {
     // The reported defect: a session that materialized its grant in

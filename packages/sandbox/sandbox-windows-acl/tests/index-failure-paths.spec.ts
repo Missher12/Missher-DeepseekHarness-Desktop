@@ -109,14 +109,22 @@ function happyStubs(): HappyStubs {
   const initializeAcl = vi.fn(() => 1)
   const addMandatoryAce = vi.fn(() => 1)
   const getTokenInformation = vi.fn((_token: unknown, cls: number, info: Buffer | null, _length: number, needed: NativePtr) => {
+    // One size per information class: the groups block carries its count
+    // header, TOKEN_USER a SID_AND_ATTRIBUTES, the default DACL one pointer.
+    const sizeOf = (): number => cls === abi.TokenGroups
+      ? 24
+      : cls === abi.TokenUser ? abi.SID_AND_ATTRIBUTES_SIZE : 8
     if (info === null) {
-      koffi.encode(needed, 'uint32', cls === abi.TokenGroups ? 24 : 8)
+      koffi.encode(needed, 'uint32', sizeOf())
       return 0 // the size probe is expected to "fail"
     }
     if (cls === abi.TokenGroups) {
       info.writeUInt32LE(1, 0)
       info.writeBigUInt64LE(77n, abi.TOKEN_GROUPS_OFFSET)
       info.writeUInt32LE(abi.SE_GROUP_LOGON_ID, abi.TOKEN_GROUPS_OFFSET + 8)
+    } else if (cls === abi.TokenUser) {
+      info.writeBigUInt64LE(79n, 0) // the token's own user SID
+      info.writeUInt32LE(0, 8) // Attributes
     } else {
       info.writeBigUInt64LE(88n, 0) // the token's current default DACL
     }
@@ -338,6 +346,42 @@ describe('AclSandbox init', () => {
     })
   })
 
+  it('frees the already-registered Low SID and capability SIDs when the world SID creation fails', async () => {
+    const { api, localFree } = state.stubs as HappyStubs
+    const workspace = scratch()
+    const temp = scratch()
+    // Low label SID succeeds, the world SID fails: the helper frees its own
+    // failed buffer, and init's failure path must free what it registered
+    // before the failure (the Low SID) plus the parsed capability SIDs.
+    const createWellKnownSid = vi.fn((type: number, _domain: null, _sid: NativePtr, _size: NativePtr) => (
+      type === abi.WinWorldSid ? 0 : 1
+    ))
+    api.createWellKnownSid = createWellKnownSid
+    localFree.mockClear()
+    const sandbox = new AclSandbox({
+      writableDirs: [workspace],
+      tempDir: temp,
+      writeSid: 'S-1-4-9000-20',
+      tempWriteSid: 'S-1-4-9000-20-1',
+      mode: 'workspace-write',
+    })
+    let caught: unknown
+    try {
+      await sandbox.init()
+    } catch (error) {
+      caught = error
+    }
+    expect(caught).toBeInstanceOf(Win32Error)
+    expect((caught as Win32Error).api).toBe('CreateWellKnownSid')
+    // The world SID buffer is freed by makeWellKnownSid; the Low label SID and
+    // both capability SIDs are freed by init's cleanup. Every pointer is freed
+    // exactly once.
+    const freed = localFree.mock.calls.map(call => call[0] as NativePtr)
+    expect(freed).toHaveLength(4)
+    expect(new Set(freed).size).toBe(4)
+    expect(sandbox.tempDir).toBeUndefined()
+  })
+
   it('revokes the revocable grants and aggregates cleanup failures when the token pipeline fails', async () => {
     const { createRestrictedToken, localFree, getNamedSecurityInfoW } = state.stubs as HappyStubs
     const workspace = scratch()
@@ -365,8 +409,11 @@ describe('AclSandbox init', () => {
       tempWriteSid: 'S-1-4-9000-10-1',
       mode: 'workspace-write',
     })
-    // Five SID frees/mutations fail plus the Low label SID the init allocated.
-    await expect(sandbox.init()).rejects.toThrow(/6 cleanup operation\(s\) also failed/u)
+    // Seven distinct cleanup failures: four registered SID allocations (Low
+    // label, world, logon, user), the two parsed capability SIDs (workspace,
+    // private temp), and the one revocable temp grant whose revocation read
+    // fails. Standing workspace grants are never revoked by dispose.
+    await expect(sandbox.init()).rejects.toThrow(/7 cleanup operation\(s\) also failed/u)
     expect(sandbox.tempDir).toBeUndefined()
   })
 })

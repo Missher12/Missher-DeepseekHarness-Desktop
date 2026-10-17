@@ -52,7 +52,7 @@ import { allocPtrSlot, decodePtr, isNullPtr, throwLastError, win32 } from './ffi
 import type { NativePtr, Win32Bindings } from './ffi.ts'
 import { assertPrivateTempDisjoint } from './path-boundary.ts'
 import { drainPipe, spawnSandboxed, spawnSandboxedInherited, waitForExit } from './spawn.ts'
-import { createRestrictedToken, findLogonSid, makeWellKnownSid, openCurrentProcessToken, restrictTokenIntegrity, setTokenDefaultDaclGrant } from './token.ts'
+import { createRestrictedToken, findLogonSid, findUserSid, makeWellKnownSid, openCurrentProcessToken, restrictTokenIntegrity, setTokenDefaultDaclGrant } from './token.ts'
 import * as abi from './win32-abi.ts'
 
 export { AclWriteGrant } from './grant.ts'
@@ -261,9 +261,12 @@ export class AclSandbox {
       // REVOCABLE (dispose() removes it before the private directory is
       // deleted; the ambient temp root is never granted).
       // The Low label SID and the world SID the grants deny and label with.
+      // Register each one the moment it exists: if the second creation fails,
+      // the failure path must already own the first SID.
       const lowLabelSid = makeWellKnownSid(api, abi.WinLowLabelSid)
+      this.sidAllocations.push(lowLabelSid)
       const worldSid = makeWellKnownSid(api, abi.WinWorldSid)
-      this.sidAllocations.push(lowLabelSid, worldSid)
+      this.sidAllocations.push(worldSid)
 
       if (this.manageDacls) {
         if (this.writeSidPtr !== undefined) {
@@ -281,6 +284,17 @@ export class AclSandbox {
       }
       const logonSid = findLogonSid(api, currentToken)
       this.sidAllocations.push(logonSid)
+      // The default DACL needs object-specific permission for a SID the enabled
+      // pass can use as well: LUA_TOKEN/DISABLE_MAX_PRIVILEGE make the
+      // Administrators groups deny-only, and the inherited default DACL's ACEs
+      // do not grant this new object to an identity that pass holds, so a
+      // capability-only ACE satisfies the restricting pass and then fails the
+      // enabled pass (CreatePipe with a null security descriptor returned
+      // ERROR_ACCESS_DENIED in workspace-write while read-only passed through
+      // Everyone). The user SID is the ordinary account and stays OUT of the
+      // restricting list.
+      const userSid = findUserSid(api, currentToken)
+      this.sidAllocations.push(userSid)
       const writeSids = [this.writeSidPtr, this.tempWriteSidPtr].filter((sid): sid is NativePtr => sid !== undefined)
       restrictedToken = createRestrictedToken(
         api, currentToken, logonSid, writeSids,
@@ -289,19 +303,19 @@ export class AclSandbox {
       )
       restrictTokenIntegrity(api, restrictedToken, lowLabelSid)
       this.token = restrictedToken
-      // The restricted token's default DACL still names only the user's
-      // ambient SIDs — none of the restricting SIDs. Every NEW object the
-      // confined process creates (anonymous stdio pipes, sync objects) takes
-      // its DACL from that default, so the write pass-2 check would deny
-      // pipe creation (ERROR_ACCESS_DENIED; Node EPERM) and break every
-      // piped-stdio grandchild spawn. Merge a full-access ACE for a
-      // restricting SID (the PRIVATE temp SID when present, otherwise the
-      // workspace SID, or Everyone under read-only): new-object creation
-      // stays gated by the parent object's DACL, while the new object's own
-      // DACL passes pass-2. Choosing the temp SID prevents default-DACL
-      // objects in one session's temp tree from acquiring the shared
-      // workspace capability.
-      setTokenDefaultDaclGrant(api, restrictedToken, this.tempWriteSidPtr ?? this.writeSidPtr ?? worldSid)
+      // Every NEW object the confined process creates (anonymous stdio pipes,
+      // sync objects) takes its DACL from the token default. The write-
+      // restricted token is access-checked twice — enabled SIDs, then
+      // restricting SIDs — so the default needs both: the user SID for the
+      // enabled pass and the mode's capability SID (the PRIVATE temp SID when
+      // present, otherwise the workspace SID, or Everyone under read-only) for
+      // the restricting pass. New-object creation stays gated by the parent
+      // object's DACL; choosing the temp SID prevents default-DACL objects in
+      // one session's temp tree from acquiring the shared workspace capability.
+      setTokenDefaultDaclGrant(api, restrictedToken, [
+        userSid,
+        this.tempWriteSidPtr ?? this.writeSidPtr ?? worldSid,
+      ])
       if (api.closeHandle(currentToken) === 0) throwLastError(api, 'CloseHandle', 'current process token')
       currentTokenOpen = false
       this.api = api
