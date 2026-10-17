@@ -90,19 +90,21 @@ jobs:
         shell: pwsh
         run: pnpm install --frozen-lockfile --filter @deepseek-ai/dsh-sandbox-windows-acl...
 
-      # The whole runner suite runs: the two opt-in redirect probes plus the
-      # cases this file actually owns — workspace/private-temp write boundaries,
+      # The runner suite runs in full (workspace/private-temp boundaries,
       # refused external/sibling directories, the Public-tree probe, the
-      # read-only standing-grant downgrade, and Node inherited/ignore success
-      # with named-pipe capture DENIED. Job kill/cancel ownership and ordinary
-      # unrestricted spawn live in the package's process/exit specs, not in this
-      # file, so this lane does not claim them until a step adds them.
+      # read-only standing-grant downgrade, Node inherited/ignore success with
+      # named-pipe capture DENIED) together with the two opt-in redirect probes.
+      # The native Job containment cases come from subprocess-local's own
+      # `native-windows.spec.ts` (real handle termination and descendant
+      # cleanup), which this lane now includes; the win32-process stubs are not
+      # counted as native.
       - name: Run the runner suite and both redirect probes
         shell: pwsh
         run: |
           pnpm exec vitest run --no-file-parallelism --maxWorkers=1 --testTimeout 120000 `
             --reporter=json --outputFile="$env:DSH_WINDOWS_ACL_REPORT_DIR/vitest.json" `
-            packages/sandbox/sandbox-windows-acl/tests/runner.spec.ts
+            packages/sandbox/sandbox-windows-acl/tests/runner.spec.ts `
+            packages/subprocess/subprocess-local/tests/native-windows.spec.ts
 
       # A skipped case proves nothing. The per-mode native reports are written
       # by the case before it asserts, so both modes remain readable here even
@@ -114,7 +116,15 @@ jobs:
           $report = Get-Content "$env:DSH_WINDOWS_ACL_REPORT_DIR/vitest.json" -Raw | ConvertFrom-Json
           $required = @(
             'creates the redirect pipe and the non-inheritable parent copy under the restricted token',
-            'runs PowerShell 7 redirect evidence under the restricted token'
+            'runs PowerShell 7 redirect evidence under the restricted token',
+            # Real native Job containment from subprocess-local (no stubs):
+            # ordinary spawn, raw stdin, null-device stdin, direct exit before
+            # terminating the default-inheritance descendant, and rejection errors.
+            'keeps ordinary descendants free of visible console windows',
+            'keeps raw stdin writable while the runner starts the target',
+            'preserves direct Node null-device semantics for ignored stdin',
+            'reports direct exit before terminating its default-inheritance descendant',
+            'preserves missing-target and invalid-executable rejection errors'
           )
           foreach ($title in $required) {
             $case = $report.testResults.assertionResults | Where-Object { $_.title -eq $title }

@@ -756,17 +756,52 @@ public static extern bool CloseHandle(IntPtr h);
 '@ | Out-Null
 function TryOpen([string]$label, [string]$path) {
   $h = [P.F]::CreateFileW($path, 0x10000000, 7, [IntPtr]::Zero, 3, 0x02000000, [IntPtr]::Zero)
-  if ($h -eq [IntPtr]::new(-1)) { "$($label): DENIED" } else { [void][P.F]::CloseHandle($h); "$($label): OK" }
+  if ($h -eq [IntPtr]::new(-1)) {
+    "$($label): DENIED win32=$([System.Runtime.InteropServices.Marshal]::GetLastWin32Error())"
+  } else {
+    [void][P.F]::CloseHandle($h)
+    "$($label): OK"
+  }
 }
+function EmitAcl([string]$path) {
+  "ACL $path"
+  foreach ($ace in (Get-Acl -LiteralPath $path).Access) {
+    "ACE $($ace.AccessControlType)|$($ace.FileSystemRights)|$($ace.IdentityReference)|$($ace.InheritanceFlags)|$($ace.PropagationFlags)|inherited=$($ace.IsInherited)"
+  }
+}
+"IDENTITY $([System.Security.Principal.WindowsIdentity]::GetCurrent().Name)"
 TryOpen 'FILE' '${join(granted, 'file.txt')}'
 TryOpen 'NESTED-FILE' '${join(child, 'deep.txt')}'
 TryOpen 'DIRECTORY' '${child}'
+EmitAcl '${granted}'
+EmitAcl '${child}'
 `
       const result = spawnSync('pwsh', ['-NoLogo', '-NonInteractive', '-NoProfile', '-Command', probe], { encoding: 'utf8', timeout: 60_000 })
-      expect(result.status, `stderr: ${result.stderr}`).toBe(0)
-      expect(result.stdout).toContain('FILE: OK')
-      expect(result.stdout).toContain('NESTED-FILE: OK')
-      expect(result.stdout).toContain('DIRECTORY: DENIED')
+      // Persist the full synthetic-case evidence before any assertion: this case
+      // spawns an UNRESTRICTED pwsh, so its outcome is independent of the
+      // sandbox token and must be explained by the ACL/identity facts, not by a
+      // truncated stdout.
+      const reportDir = process.env.DSH_WINDOWS_ACL_REPORT_DIR === undefined
+        ? join(scratchRoot, 'native-redirect-reports')
+        : resolve(process.cwd(), process.env.DSH_WINDOWS_ACL_REPORT_DIR)
+      mkdirSync(reportDir, { recursive: true })
+      const scrubText = (text: string): string => [scratchRoot, writableDir, isolatedTemp, process.cwd(), homedir()]
+        .filter(value => value !== '')
+        .reduce((current, value) => current.replaceAll(value, '<fixture>'), text)
+      writeFileSync(join(reportDir, 'fullcontrol-directory.json'), JSON.stringify({
+        status: result.status,
+        signal: result.signal,
+        stdout: scrubText(result.stdout ?? ''),
+        stderr: scrubText(result.stderr ?? ''),
+      }, null, 2))
+      const detail = `status ${String(result.status)}\nstdout: ${scrubText(result.stdout ?? '')}\nstderr: ${scrubText(result.stderr ?? '')}`
+      // A signal means the probe was torn down instead of finishing; the ACL
+      // observations below must come from a completed run.
+      expect(result.signal, detail).toBeNull()
+      expect(result.status, detail).toBe(0)
+      expect(result.stdout, detail).toContain('FILE: OK')
+      expect(result.stdout, detail).toContain('NESTED-FILE: OK')
+      expect(result.stdout, detail).toContain('DIRECTORY: DENIED')
     } finally {
       grant.dispose()
       rmSync(granted, { recursive: true, force: true })
