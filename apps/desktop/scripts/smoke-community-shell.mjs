@@ -1,0 +1,163 @@
+/** Launch a packaged community shell in an isolated profile and inspect its actual renderer. */
+import { spawn, spawnSync } from 'node:child_process'
+import { once } from 'node:events'
+import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
+import { setTimeout as delay } from 'node:timers/promises'
+import { isDesktopUiReady, FAILURE_TEXT } from './community-shell-readiness.mjs'
+import { inspectDesktopScreenshot } from './community-shell-raster.mjs'
+import { documentsIsolation, isolatedProfileEnv, macosDocumentsDirectory } from './community-shell-documents.mjs'
+
+if (!['linux', 'win32', 'darwin'].includes(process.platform)) throw new Error('Shell smoke requires Linux, Windows or macOS')
+const windows = process.platform === 'win32'
+const executable = resolve(process.argv[2])
+const output = resolve(process.argv[3])
+const executableStat = await stat(executable)
+if (!executableStat.isFile() || (!windows && !(executableStat.mode & 0o111))) throw new Error('Desktop executable must be an executable file')
+await mkdir(output, { recursive: true })
+const root = await mkdtemp(join(tmpdir(), 'missher-desktop-smoke-'))
+// One shared profile environment, so the preflight and this smoke ask the
+// Documents question exactly as the launched Desktop process does.
+const childEnv = isolatedProfileEnv(root)
+const diagnostic = childEnv.DSH_DESKTOP_DIAGNOSTIC_FILE
+// A fresh XDG_CONFIG_HOME has no user-dirs.dirs, so `xdg-user-dir DOCUMENTS`
+// falls back to $HOME, which the Host rejects as an unavailable Documents
+// directory and first-use default Workspace creation then fails. Reproduce a
+// normal desktop profile by declaring an isolated Documents directory, then
+// verify the Host really created the default Workspace under it.
+let defaultWorkspaceDir
+let documentsIsolationVerdict = null
+try {
+  if (process.platform === 'linux') {
+    await mkdir(join(root, 'config'), { recursive: true })
+    const documents = join(root, 'documents')
+    await mkdir(documents, { recursive: true })
+    await writeFile(join(root, 'config', 'user-dirs.dirs'), `XDG_DOCUMENTS_DIR="${documents}"\n`)
+    defaultWorkspaceDir = join(documents, 'deepseek-harness', 'default-workspace')
+  } else if (process.platform === 'darwin') {
+    // The Host resolves Documents by asking `osascript`, so ask the same question
+    // with the same isolated environment (HOME and CFFIXED_USER_HOME) and require
+    // the answer inside the isolated root: an account Documents directory would
+    // create the Workspace outside the profile.
+    await mkdir(join(root, 'Documents'), { recursive: true })
+    const documents = macosDocumentsDirectory(childEnv)
+    documentsIsolationVerdict = documentsIsolation(documents, root)
+    if (!documentsIsolationVerdict.isolated) {
+      throw new Error(`macOS Documents lookup left the isolated profile: '${documents}' does not resolve inside '${root}'`)
+    }
+    defaultWorkspaceDir = join(documents, 'deepseek-harness', 'default-workspace')
+  }
+} catch (error) {
+  // Preparation failed before any application process existed: no child to stop,
+  // and only the temporary profile root this script created is removed. The
+  // diagnostic stays in the caller's output directory, outside that root.
+  if (process.platform === 'darwin') {
+    await writeFile(join(output, 'documents-lookup.json'), JSON.stringify({ ...(documentsIsolationVerdict ?? {}), error: error.message }, null, 2) + '\n')
+  }
+  await rm(root, { recursive: true, force: true })
+  throw error
+}
+async function workspaceOnDisk() {
+  if (defaultWorkspaceDir === undefined) return true
+  try { return (await stat(defaultWorkspaceDir)).isDirectory() } catch { return false }
+}
+const child = spawn(executable, ['--remote-debugging-port=0', `--user-data-dir=${join(root, 'electron')}`], {
+  detached: !windows,
+  env: childEnv,
+  stdio: ['ignore', 'pipe', 'pipe'],
+})
+let spawnFailure
+const closed = once(child, 'close').catch(error => { spawnFailure = error })
+let log = ''
+child.stdout.on('data', data => { log += data })
+child.stderr.on('data', data => { log += data })
+let socket
+try {
+  const deadline = Date.now() + 90_000
+  let page
+  while (Date.now() < deadline) {
+    if (spawnFailure) throw spawnFailure
+    if (child.exitCode !== null || child.signalCode !== null) throw new Error(`Desktop exited: ${log}`)
+    const endpoint = /DevTools listening on (ws:\/\/127\.0\.0\.1:\d+)\//u.exec(log)?.[1]
+    if (endpoint) {
+      const targets = await fetch(endpoint.replace('ws:', 'http:') + '/json/list').then(response => response.json())
+      page = targets.find(target => target.type === 'page' && target.url !== 'about:blank')
+      if (page) break
+    }
+    await delay(200)
+  }
+  if (!page) throw new Error(`Desktop did not create a renderer: ${log}`)
+  socket = new WebSocket(page.webSocketDebuggerUrl)
+  await new Promise((resolveOpen, reject) => {
+    socket.addEventListener('open', resolveOpen, { once: true })
+    socket.addEventListener('error', reject, { once: true })
+  })
+  let nextId = 0
+  async function command(method, params = {}) {
+    const id = ++nextId
+    return new Promise((resolveResult, reject) => {
+      const timeout = setTimeout(() => { socket.removeEventListener('message', receive); reject(new Error(`CDP timeout: ${method}`)) }, 10_000)
+      const receive = event => {
+        const message = JSON.parse(event.data)
+        if (message.id !== id) return
+        clearTimeout(timeout)
+        socket.removeEventListener('message', receive)
+        if (message.error) reject(new Error(JSON.stringify(message.error)))
+        else resolveResult(message.result)
+      }
+      socket.addEventListener('message', receive)
+      socket.send(JSON.stringify({ id, method, params }))
+    })
+  }
+  let document
+  let sawFailure = ''
+  while (Date.now() < deadline) {
+    const result = await command('Runtime.evaluate', { expression: '({url:location.href,ready:document.readyState,boot:!!document.querySelector("[data-dsh-boot]"),controls:document.querySelectorAll("button,input,textarea,[role=button]").length,text:document.body?.innerText??"",width:innerWidth,height:innerHeight})', returnByValue: true })
+    document = result.result.value
+    if (isDesktopUiReady(document) && await workspaceOnDisk()) break
+    // A failure toast can appear and then be removed between polls; remember it
+    // so an expired error hint cannot pass the readiness gate.
+    sawFailure ||= FAILURE_TEXT.exec(document?.text ?? '')?.[0] ?? ''
+    await delay(200)
+  }
+  await writeFile(join(output, 'renderer-state.json'), JSON.stringify(document ?? null, null, 2) + '\n')
+  await command('Page.enable')
+  await command('Page.bringToFront')
+  const screenshot = await command('Page.captureScreenshot', { format: 'png', fromSurface: windows })
+  const png = Buffer.from(screenshot.data, 'base64')
+  if (!png.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10])) || png.length < 1000) throw new Error('Desktop screenshot is not a usable PNG')
+  await writeFile(join(output, 'desktop.png'), Buffer.from(screenshot.data, 'base64'))
+  const raster = await inspectDesktopScreenshot(png)
+  await writeFile(join(output, 'raster-state.json'), JSON.stringify(raster, null, 2) + '\n')
+  const ready = isDesktopUiReady(document) && await workspaceOnDisk()
+  const failure = await readFile(diagnostic, 'utf8').catch(error => { if (error.code === 'ENOENT') return ''; throw error })
+  await writeFile(join(output, 'desktop-shell.json'), JSON.stringify({ raster, platform: process.platform, arch: process.arch,
+    renderer: document.url.replace(/([?&]token=)[^&]+/gu, '$1[redacted]'), document, ready,
+    defaultWorkspace: defaultWorkspaceDir ?? null, documents: documentsIsolationVerdict, sandboxDisabled: false, modelCalled: false }, null, 2) + '\n')
+  if (!ready || sawFailure || failure || !raster.hasContent) {
+    const reasons = []
+    if (!ready) reasons.push('renderer still connecting, loading settings, no open workspace session or default workspace not created on disk')
+    if (sawFailure) reasons.push(`host report seen during boot: ${sawFailure}`)
+    if (failure) reasons.push(failure)
+    if (!raster.hasContent) reasons.push('screenshot has no rendered pixel variation')
+    throw new Error(`Packaged Desktop did not pass: ${reasons.join('; ')}; see desktop-shell.json and desktop.png`)
+  }
+  console.log('Packaged Desktop renderer and PNG verified')
+} finally {
+  socket?.close()
+  if (child.pid !== undefined) {
+    if (windows) {
+      if (child.exitCode === null) {
+        const stopped = spawnSync('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true })
+        await writeFile(join(output, 'process-stop.json'), JSON.stringify({ pid: child.pid, status: stopped.status, stdout: stopped.stdout?.toString(), stderr: stopped.stderr?.toString() }, null, 2) + '\n')
+      }
+    } else {
+      try { process.kill(-child.pid, 'SIGTERM') } catch (error) { if (error.code !== 'ESRCH') throw error }
+    }
+    const timer = setTimeout(() => { if (!windows) { try { process.kill(-child.pid, 'SIGKILL') } catch {} } }, 10_000)
+    try { await closed } finally { clearTimeout(timer) }
+  }
+  await writeFile(join(output, 'desktop-shell.log'), log.replace(/([?&]token=)[^\s&]+/gu, '$1[redacted]'))
+  await rm(root, { recursive: true, force: true, maxRetries: windows ? 10 : 0, retryDelay: 250 })
+}

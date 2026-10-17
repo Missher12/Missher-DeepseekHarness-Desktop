@@ -33,6 +33,7 @@ import { DESKTOP_IPC, SCHEME, assertDesktopSender, type DesktopUpdateState } fro
 import { readDeviceInfo } from './device-info.ts'
 import { desktopUpdateReadyConfirmation, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale } from './locale.ts'
 import { claimDesktopSingleInstance } from './single-instance.ts'
+import { checkCommunityRelease, isCommunityDistribution } from './community-update.ts'
 import { desktopUpdateChannel } from './update-channel.ts'
 import { DesktopUpdateCoordinator } from './update-coordinator.ts'
 import { DesktopCommandManager } from './command-management.ts'
@@ -811,6 +812,19 @@ async function main(): Promise<void> {
       if (isMandatory()) {
         mandatoryUI?.focus()
         if (manual) await Promise.all([checkPolicyManually(), updateSchedule.check(true)])
+        return
+      }
+      if (isCommunityDistribution(manifest) && !updates.hasInstallerSource) {
+        // Community builds ship without an installer feed: report the published
+        // release and let the user download the matching installer manually.
+        const latest = await checkCommunityRelease(app.getVersion(), (input, init) => net.fetch(input, init))
+        const result = await ordinaryMessageBox({ type: 'info', title: locale.messages.updateCheckTitle,
+          message: formatDesktopMessage(latest.newer ? locale.messages.communityUpdateAvailable : locale.messages.communityUpdateCurrent,
+            { version: latest.version }),
+          detail: `${formatDesktopMessage(locale.messages.updateCurrentDetail, { version: app.getVersion() })}\n\n${locale.messages.communityUpdateDetail}`,
+          buttons: [locale.messages.communityUpdateNotes, locale.messages.updateLater], cancelId: 1,
+        })
+        if (result.response === 0) await shell.openExternal(latest.url)
         return
       }
       let controller: AbortController | undefined

@@ -253,3 +253,10 @@ it('skips Apple credentials but still requires signing credentials for unnotariz
     }).toThrow(/CSC_KEY_PASSWORD/u)
   })
 })
+
+it('accepts a community Linux build and rejects signed Linux downloads', () => {
+  const linux = { DSH_DESKTOP_APP_ID: 'com.missher.deepseek-harness', DSH_DESKTOP_COMMUNITY_BUILD: '1' }
+  expect(() => { validateDesktopPackageEnvironment(linux, { platform: 'linux', arch: 'x64' }, { unsigned: true }) }).not.toThrow()
+  expect(() => { validateDesktopPackageEnvironment(linux, { platform: 'linux', arch: 'x64' }) })
+    .toThrow(/Linux downloads require unsigned packaging/u)
+})

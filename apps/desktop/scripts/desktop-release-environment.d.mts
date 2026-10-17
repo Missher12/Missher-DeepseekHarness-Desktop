@@ -57,6 +57,13 @@ export function resolveDesktopAppId(env: NodeJS.ProcessEnv): string
 export function resolveNpmRegistry(env: NodeJS.ProcessEnv): string
 
 /**
+ * Identify explicitly unsigned community distributions that never use the official feed.
+ * @param env - Packaging environment.
+ * @returns Whether this build selects the community distribution.
+ */
+export function isCommunityDesktopBuild(env?: NodeJS.ProcessEnv): boolean
+
+/**
  * Resolve and validate the public identity expected on a macOS release.
  * @param env - Packaging environment.
  * @returns Expected certificate qualifier and Team ID.

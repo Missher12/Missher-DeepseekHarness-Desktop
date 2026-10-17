@@ -69,6 +69,22 @@ export function resolveDesktopAppId(env) {
 }
 
 /**
+ * Identify explicitly unsigned community distributions that never use the official feed.
+ * @param {NodeJS.ProcessEnv} env - Packaging environment.
+ * @returns {boolean} Whether this build selects the community distribution.
+ */
+export function isCommunityDesktopBuild(env) {
+  const value = env.DSH_DESKTOP_COMMUNITY_BUILD
+  if (value !== undefined && value !== '0' && value !== '1') {
+    throw new Error('desktop package: DSH_DESKTOP_COMMUNITY_BUILD must be 0 or 1')
+  }
+  if (value === '1' && resolveDesktopAppId(env) === 'com.deepseek.harness') {
+    throw new Error('desktop package: community distributions require their own application identity')
+  }
+  return value === '1'
+}
+
+/**
  * Resolve and validate the public identity expected on a macOS release.
  * @param {NodeJS.ProcessEnv} env - Packaging environment.
  * @returns {{ signingIdentity: string, teamId: string }} Expected certificate qualifier and Team ID.
