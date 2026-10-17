@@ -233,8 +233,10 @@ jobs:
         shell: pwsh
         run: |
           $archive = Join-Path $env:RUNNER_TEMP 'missher-dsh-project-ops-0.4.0.tgz'
-          Invoke-WebRequest -Uri 'https://github.com/Missher12/Missher-DSH-Project-Ops/releases/download/v0.4.0/missher-dsh-project-ops-0.4.0.tgz' -OutFile $archive
-          if ($LASTEXITCODE -ne 0 -or -not (Test-Path $archive)) { throw "archive download failed: $LASTEXITCODE" }
+          Invoke-WebRequest -Uri 'https://github.com/Missher12/Missher-DSH-Project-Ops/releases/download/v0.4.0/missher-dsh-project-ops-0.4.0.tgz' -OutFile $archive -ErrorAction Stop
+          # Invoke-WebRequest is a cmdlet without a native exit code; the file on
+          # disk is the receipt, and the size/hash checks below stay unchanged.
+          if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) { throw "archive download failed: $archive is missing" }
           $bytes = (Get-Item $archive).Length
           $sha = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($bytes -ne 249145) { throw "ops archive size $bytes != 249145" }
