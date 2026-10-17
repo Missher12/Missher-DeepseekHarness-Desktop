@@ -335,3 +335,7 @@ describe('desktop upload plan', () => {
     await expect(createDesktopUploadPlan('mac-arm64', paths)).rejects.toThrow(/mac-arm64\.zip/u)
   })
 })
+
+it('rejects the community Linux target before reading artifacts', async () => {
+  await expect(createDesktopUploadPlan('linux-x64')).rejects.toThrow(/community release/u)
+})

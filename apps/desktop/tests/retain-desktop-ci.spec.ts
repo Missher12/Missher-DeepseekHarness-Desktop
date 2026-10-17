@@ -49,3 +49,8 @@ it.each([
     await expect(summary).toMatchFileSnapshot(`./expected/retained-${qualification}.md`)
   } else expect(summary).toContain('Publish separately with package_run_id=123 and package_run_attempt=2')
 })
+
+it('rejects the community Linux target before reading settings or artifacts', async () => {
+  await expect(retainDesktopCi({ DSH_DESKTOP_TARGET_PLATFORM: 'linux', DSH_DESKTOP_TARGET_ARCH: 'x64' }))
+    .rejects.toThrow(/community Linux/u)
+})

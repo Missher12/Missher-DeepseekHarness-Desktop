@@ -92,6 +92,10 @@ async function launchElectron(): Promise<void> {
 
 async function main(): Promise<void> {
   const { values } = parseArgs({ options: { 'skip-build': { type: 'boolean', default: false } } })
+  const target = resolveDesktopBuildTarget()
+  if (target === 'linux-x64') {
+    throw new Error('desktop development: Linux uses the community package route (pnpm run package:desktop:linux:x64); it has no official development update route')
+  }
   if (!values['skip-build']) {
     await runPackageScript('build:artifacts', REPOSITORY_ROOT)
     await runPackageScript('build', APP_ROOT)
@@ -118,7 +122,7 @@ async function main(): Promise<void> {
     hostDir: join(REPOSITORY_ROOT, 'apps', 'desktop-host'),
     dependencyDir: join(REPOSITORY_ROOT, 'node_modules', '.pnpm', 'node_modules'),
     release,
-    target: resolveDesktopBuildTarget(),
+    target,
   })
   await preparePrimaryRuntime()
   await launchElectron()
