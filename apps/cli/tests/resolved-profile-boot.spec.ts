@@ -138,6 +138,16 @@ describe('runProfile with an application-owned profile', () => {
           { id: 'target', name: 'target', config: { bundle: true, priority: 'bundle' } },
           { id: 'session-telemetry-otel', name: 'telemetry' },
         ] }],
+        // Hand-written for this test, not resolved from the runtime installation.
+        origin: {
+          kind: 'bundle',
+          label: 'test-bundle',
+          trusted: false,
+          installAnchor: join(home, 'runtime/package.json'),
+          packageName: 'test-bundle',
+          packageDir: home,
+          fromInstallation: false,
+        },
       }],
     }
     const environment = createLaunchEnvironmentSnapshot([{ source: 'process', values: { HTTPS_PROXY: 'http://localhost:8080' } }])

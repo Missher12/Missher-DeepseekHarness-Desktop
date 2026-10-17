@@ -69,7 +69,23 @@ function validates(dump: ConfigSchemaDump, value: unknown, definition = 'entryLi
 
 describe('generateConfigSchema', () => {
   it('owns ordered composition, skipped-bundle diagnostics, and runtime resolution without mutating layers', async () => {
-    profile.layers = [{ packageName: 'loaded', packageDir: dir, patchPaths: [join(dir, 'bundle.yml')], patches: [] }]
+    const installAnchor = join(dir, 'installation.json')
+    profile.layers = [{
+      packageName: 'loaded',
+      packageDir: dir,
+      patchPaths: [join(dir, 'bundle.yml')],
+      patches: [],
+      // A layer this test composed, not a bundle the installation resolved.
+      origin: {
+        kind: 'bundle',
+        label: 'loaded',
+        trusted: false,
+        installAnchor,
+        packageName: 'loaded',
+        packageDir: dir,
+        fromInstallation: false,
+      },
+    }]
     profile.skippedBundles = [{ packageName: 'missing', reason: 'Error: cannot resolve profile bundle "missing"' }]
     modules.set('server', { Config: Schema.string() })
     const layers: PatchOptions[][] = [
@@ -78,7 +94,6 @@ describe('generateConfigSchema', () => {
       [{ id: 'absent', config: {} }],
     ]
     const original = structuredClone(layers)
-    const installAnchor = join(dir, 'installation.json')
     const resolve = vi.spyOn(profileOperations, 'createRuntimeResolution')
       .mockResolvedValue(new profileOperations.ProfileRuntimeResolution({ installAnchor: '', home: '', profileDir: undefined }, resolution))
     const result = await generateConfigSchema(profile, layers, installAnchor)

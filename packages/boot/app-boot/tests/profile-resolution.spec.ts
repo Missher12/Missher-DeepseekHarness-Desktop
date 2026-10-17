@@ -289,6 +289,15 @@ describe('runtime resolution', { concurrent: false }, () => {
       f.profile.layers.push({
         packageName: 'bridge', packageDir: f.installed,
         patchPaths: [join(f.installed, 'cordis.patch.yml')], patches: [],
+        origin: {
+          kind: 'bundle',
+          label: 'bridge',
+          trusted: false,
+          installAnchor: f.installAnchor,
+          packageName: 'bridge',
+          packageDir: f.installed,
+          fromInstallation: false,
+        },
       })
     }
     expect(createRequire(join(bridge, 'node_modules', 'middle', 'package.json'))('leaf')).toEqual({ marker: 1 })
@@ -328,11 +337,29 @@ describe('runtime resolution', { concurrent: false }, () => {
       packageDir: bundleDir,
       patchPaths: [join(bundleDir, 'cordis.patch.yml')],
       patches: [],
+      origin: {
+        kind: 'bundle',
+        label: 'test-bundle',
+        trusted: false,
+        installAnchor: f.installAnchor,
+        packageName: 'test-bundle',
+        packageDir: bundleDir,
+        fromInstallation: false,
+      },
     }, {
       packageName: 'later-bundle',
       packageDir: laterBundle,
       patchPaths: [join(laterBundle, 'cordis.patch.yml')],
       patches: [],
+      origin: {
+        kind: 'bundle',
+        label: 'later-bundle',
+        trusted: false,
+        installAnchor: f.installAnchor,
+        packageName: 'later-bundle',
+        packageDir: laterBundle,
+        fromInstallation: false,
+      },
     })
 
     const resolution = await resolutionOf(f)
@@ -961,6 +988,15 @@ describe('runtime resolution', { concurrent: false }, () => {
       packageDir: bundleDir,
       patchPaths: [join(bundleDir, 'cordis.patch.yml')],
       patches: [],
+      origin: {
+        kind: 'bundle',
+        label: 'test-bundle',
+        trusted: false,
+        installAnchor: f.installAnchor,
+        packageName: 'test-bundle',
+        packageDir: bundleDir,
+        fromInstallation: false,
+      },
     })
     const registration = installRuntimeInterception(await resolutionOf(f))
     registrations.push(registration)
@@ -1239,6 +1275,15 @@ describe('runtime resolution', { concurrent: false }, () => {
     f.profile.layers.push({
       packageName: 'my-bundle', packageDir: bundle,
       patchPaths: [join(bundle, 'cordis.patch.yml')], patches: [],
+      origin: {
+        kind: 'bundle',
+        label: 'my-bundle',
+        trusted: false,
+        installAnchor: f.installAnchor,
+        packageName: 'my-bundle',
+        packageDir: bundle,
+        fromInstallation: false,
+      },
     })
     const target = join(f.root, 'old-dsh', 'node_modules', 'bridge')
     const owned = join(f.profile.dir, '.dsh-module-fallback', 'node_modules', 'bridge')
@@ -1268,6 +1313,15 @@ describe('runtime resolution', { concurrent: false }, () => {
     f.profile.layers.push({
       packageName: 'my-bundle', packageDir: bundleDir,
       patchPaths: [join(bundleDir, 'cordis.patch.yml')], patches: [],
+      origin: {
+        kind: 'bundle',
+        label: 'my-bundle',
+        trusted: false,
+        installAnchor: f.installAnchor,
+        packageName: 'my-bundle',
+        packageDir: bundleDir,
+        fromInstallation: false,
+      },
     })
     file(join(f.profile.dir, 'package.json'), JSON.stringify({
       name: 'dsh-profile-web', private: true, dependencies: { 'my-plugin': '*', 'my-bundle': '*' },
@@ -1734,7 +1788,22 @@ describe('runtime resolution', { concurrent: false }, () => {
     const bundleDir = join(f.root, 'synthetic-bundle')
     pkg(bundleDir, 'synthetic-bundle', 1, { 'private-lib': '*' })
     pkg(join(bundleDir, 'node_modules', 'private-lib'), 'private-lib', 1)
-    f.profile.layers.push({ packageName: 'synthetic-bundle', packageDir: bundleDir, patchPaths: [], patches: [] })
+    f.profile.layers.push({
+      packageName: 'synthetic-bundle',
+      packageDir: bundleDir,
+      patchPaths: [],
+      patches: [],
+      // A synthetic layer: no patch files and no installation declaring it.
+      origin: {
+        kind: 'bundle',
+        label: 'synthetic-bundle',
+        trusted: false,
+        installAnchor: f.installAnchor,
+        packageName: 'synthetic-bundle',
+        packageDir: bundleDir,
+        fromInstallation: false,
+      },
+    })
     const first = await createRuntimeResolution({ installAnchor: f.installAnchor, home: f.root, profile: f.profile })
     expect(first.entries.some(entry => entry.name === 'private-lib')).toBe(true)
     f.profile.dir = join(f.root, 'another-profile')

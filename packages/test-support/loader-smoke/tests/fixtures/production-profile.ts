@@ -49,6 +49,17 @@ function overlayModuleLayers(path: string, patches: readonly PatchOptions[]): Pr
     packageDir,
     patchPaths: [path],
     patches: [],
+    // These layers exist only so a test overlay's inserted packages resolve;
+    // they come from the overlay, not from a bundle the installation declares.
+    origin: {
+      kind: 'overlay',
+      label: name,
+      trusted: false,
+      installAnchor,
+      packageName: `test-overlay:${index}:${name}`,
+      packageDir,
+      fromInstallation: false,
+    },
   }))
 }
 
