@@ -25,6 +25,16 @@
 
 仓库内的[旧合集记录](../distribution/plugin-set.json)和[仓库记录](../cordis-repositories.json)保留早期发布内容；安装时以所选发布页附带的包清单为准。
 
+## 插件界面预览
+
+以下截图来自各插件发布时的真实界面，使用隔离测试配置和合成数据。点击截图查看对应仓库的安装说明、更多界面和兼容范围。
+
+|  |  |
+| --- | --- |
+| **使用统计 0.2.2**<br>[![使用统计](https://raw.githubusercontent.com/Missher12/Missher-DSH-Usage-Statistics/4b82f3b5214ebff88d383d1633220a6031b5058e/docs/images/usage-0.2.2-light.png)](https://github.com/Missher12/Missher-DSH-Usage-Statistics) | **思考强度 0.7.6**<br>[![思考强度](https://raw.githubusercontent.com/Missher12/Missher-DSH-Reasoning-Effort/317271f1eaa3d268f8d91c7c86b468ca8cbac67b/docs/images/reasoning-slider-alpha5.png)](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) |
+| **输出外观 0.1.3**<br>[![输出外观](https://raw.githubusercontent.com/Missher12/Missher-DSH-Output-Renderer/ff979cfb33081183915bb285e4095a52542d0d5c/docs/images/output-process-alpha5.png)](https://github.com/Missher12/Missher-DSH-Output-Renderer) | **项目任务 0.4.0**<br>[![项目任务](https://raw.githubusercontent.com/Missher12/Missher-DSH-Project-Ops/a283f8ee1e5324253e55ce69d48f6fbfd3fed260/docs/images/task-panel-0.4.0.jpg)](https://github.com/Missher12/Missher-DSH-Project-Ops) |
+| **MSE 持久学习 0.10.0**<br>[![MSE 持久学习](https://raw.githubusercontent.com/Missher12/Missher-MSE-Learning/50a26bca5dc63222bd5e98bd6197f45cf98e7ce0/docs/images/official-alpha5-zh-r11.png)](https://github.com/Missher12/Missher-MSE-Learning) | **会话桥接 0.1.3**<br>[![会话桥接](https://raw.githubusercontent.com/Missher12/Missher-DSH-Session-Bridge/6a0017fae8aa1e8f46c76695aa33208661a0aceb/docs/images/header-full-alpha2.png)](https://github.com/Missher12/Missher-DSH-Session-Bridge) |
+
 ## 私有与独立项目
 
 | 项目 | 可以做什么 | 安装位置 |

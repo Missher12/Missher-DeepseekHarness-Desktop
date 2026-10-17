@@ -1,0 +1,126 @@
+name: Windows Host narrow validation
+
+# Manual, narrow Windows lane for the redirect-handle primitives behind the
+# reported NativeErrorCode=5. It runs ONE opt-in regression case from the
+# existing sandbox-windows-acl runner suite under the real restricted token and
+# asserts the native CreatePipe and DuplicateHandle (SAME_ACCESS, current
+# process, non-inheritable parent end) return codes. It exists so this
+# signature can be reproduced on real Windows without triggering the broad PR
+# lanes (ci.yml) or the full-installer windows-package job.
+#
+# Nothing else runs here: no other package tests, no installer, no bundle or
+# compile build step. The scoped dependency install does run the closure's
+# own lifecycle scripts, which are listed at that step.
+on:
+  workflow_dispatch:
+    inputs:
+      node-version:
+        description: Exact Node version for the reproduction (upstream evidence pins 22.20.0)
+        required: false
+        default: '22.20.0'
+
+permissions:
+  contents: read
+
+# The 1536 MiB heap applies to dependency installation and the test alike.
+env:
+  DSH_TELEMETRY_DISABLED: '1'
+  NODE_OPTIONS: '--max-old-space-size=1536'
+  DSH_WINDOWS_ACL_NATIVE_PIPE: '1'
+  DSH_WINDOWS_ACL_REPORT_DIR: native-redirect-reports
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows-acl-native-redirect:
+    if: github.event_name == 'workflow_dispatch'
+    # Hosted Windows is the narrowest real target; the enterprise Windows pool
+    # stays reserved for the required PR lanes.
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v5.0.0
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm-narrow-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      # Bind the artifact to what actually ran. PowerShell and .NET appear as a
+      # recorded environment only: `dotnet --list-runtimes` reports installed
+      # runtimes, while `dotnet --version` would only name an SDK. The upstream
+      # 7.6.6 / .NET 10.0.12 pin is NOT reproduced by this lane.
+      - name: Record environment and actual limits
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:DSH_WINDOWS_ACL_REPORT_DIR | Out-Null
+          $pwshCommand = Get-Command pwsh -ErrorAction SilentlyContinue
+          $pwshVersion = if ($pwshCommand) { & $pwshCommand.Source -NoLogo -NoProfile -Command '$PSVersionTable.PSVersion.ToString()' } else { $null }
+          $runtimes = if (Get-Command dotnet -ErrorAction SilentlyContinue) { (dotnet --list-runtimes) -join "`n" } else { $null }
+          [ordered]@{
+            commit = $env:GITHUB_SHA
+            runId = $env:GITHUB_RUN_ID
+            workflowRef = $env:GITHUB_REF
+            nodeRuntime = (node -v)
+            nodeRequested = '${{ inputs.node-version }}'
+            pnpm = (pnpm -v)
+            pwsh = if ($pwshCommand) { $pwshCommand.Source } else { $null }
+            pwshVersion = $pwshVersion
+            dotnetRuntimes = $runtimes
+            os = "$((Get-CimInstance Win32_OperatingSystem).Caption) $((Get-CimInstance Win32_OperatingSystem).Version)"
+            limits = 'No Linux cgroup on Windows. Enforced here: NODE_OPTIONS=--max-old-space-size=1536 for install and test, and --maxWorkers=1 --no-file-parallelism for the test. The runner VM is the only memory ceiling, so 3GiB/swap256MiB/CPU100% are NOT claimed.'
+          } | ConvertTo-Json -Depth 3 | Set-Content -Encoding utf8 "$env:DSH_WINDOWS_ACL_REPORT_DIR/environment.json"
+          Get-Content "$env:DSH_WINDOWS_ACL_REPORT_DIR/environment.json" | Out-String | Add-Content $env:GITHUB_STEP_SUMMARY
+
+      # Scoped to the package's own dependency closure. This is NOT a
+      # build-free install: the closure's real lifecycle scripts run, namely
+      # `koffi@3.1.1` install (cnoke prebuild) and
+      # `@deepseek-ai/dsh-subprocess-local` postinstall (spawn helper).
+      - name: Install the package closure (immutable)
+        shell: pwsh
+        run: pnpm install --frozen-lockfile --filter @deepseek-ai/dsh-sandbox-windows-acl...
+
+      - name: Run the native redirect probe
+        shell: pwsh
+        run: |
+          pnpm exec vitest run --no-file-parallelism --maxWorkers=1 --testTimeout 90000 `
+            --reporter=json --outputFile="$env:DSH_WINDOWS_ACL_REPORT_DIR/vitest.json" `
+            -t "creates the redirect pipe" `
+            packages/sandbox/sandbox-windows-acl/tests/runner.spec.ts
+
+      # A skipped case proves nothing. The per-mode native reports are written
+      # by the case before it asserts, so both modes remain readable here even
+      # when one of them failed.
+      - name: Require the case to have run and passed
+        if: always()
+        shell: pwsh
+        run: |
+          $report = Get-Content "$env:DSH_WINDOWS_ACL_REPORT_DIR/vitest.json" -Raw | ConvertFrom-Json
+          $case = $report.testResults.assertionResults |
+            Where-Object { $_.title -eq 'creates the redirect pipe and the non-inheritable parent copy under the restricted token' }
+          if (-not $case) { throw 'the native redirect case did not run (skipped or filtered out)' }
+          if ($case.status -ne 'passed') { throw "the native redirect case reported $($case.status): $($case.failureMessages -join '; ')" }
+          foreach ($mode in @('workspace-write', 'read-only')) {
+            $native = Join-Path $env:DSH_WINDOWS_ACL_REPORT_DIR "$mode.json"
+            if (-not (Test-Path $native)) { throw "missing native report for $mode" }
+            $parsed = Get-Content $native -Raw | ConvertFrom-Json
+            if (-not $parsed.report) { throw "native report for $mode carries no structured result: $($parsed.parseError)" }
+            if ($parsed.report.ok -ne $true) { throw "native report for $mode is not ok: $($parsed.report.failures -join '; ')" }
+          }
+          if ($report.numFailedTests -ne 0) { throw "failed tests: $($report.numFailedTests)" }
+
+      - name: Upload the native reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-acl-native-redirect
+          path: native-redirect-reports
+          if-no-files-found: warn

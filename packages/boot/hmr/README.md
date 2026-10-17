@@ -58,6 +58,8 @@ Chokidar options, including polling, retain their existing meaning. Exact config
 
 App-boot owns profile parsing and patch precedence. HMR reads the launcher’s data-only `profileContext`, registers the profile manifest and both user patch watches during initialization, and waits for application readiness before processing changes. Its disposal closes the watchers and cancels reloads waiting for startup. Configuration watchers start outside the active transaction context so later notifications can enter the queue.
 
+A code replacement takes the runtime's retained-owner barrier before its first teardown: a change that would destroy a preset owner a retained revision still depends on is refused before any plugin is unregistered, so the edited file stays on disk and the running owner keeps serving its Agents.
+
 A changed `package.json` outside `node_modules` expires that package's cached configuration. A configuration-only manifest triggers no module reload; a manifest imported as a JSON module retains dependency-driven reloads, and one in the host dependency graph retains host reloads. Dedicated configuration watches keep their existing ownership. A new package entry takes effect when its Loader entry restarts.
 
 Loader entries retain their raw import results. HMR retains every distinct imported namespace for each entry name and configuration-tree base URL; an uninitialized entry does not overwrite another entry's namespace. HMR matches those objects to cached ModuleJob namespaces instead of resolving entry names again. Names without an imported namespace and `cordis:` builtins keep name-based resolution. Source reloads therefore use the loaded modules after `exports` or `main` changes.

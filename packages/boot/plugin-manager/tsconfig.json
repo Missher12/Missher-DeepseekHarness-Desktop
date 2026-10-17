@@ -64,6 +64,21 @@
     },
     {
       "path": "../../interaction/user-approval"
+    },
+    {
+      "path": "../../preset/agent-preset-registry"
+    },
+    {
+      "path": "../../preset/agent-preset"
+    },
+    {
+      "path": "../../core/scope"
+    },
+    {
+      "path": "../config-editor"
+    },
+    {
+      "path": "../../session/session-projection"
     }
   ]
 }

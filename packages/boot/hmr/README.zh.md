@@ -58,6 +58,8 @@ Chokidar 选项（包括轮询）保持原有含义。精确配置监听同时�
 
 App-boot 负责 profile 解析和 patch 优先级规则。HMR 读取启动器提供的纯数据 `profileContext`，在初始化时注册 profile manifest 和两份用户 patch 的监听，并等待应用就绪后处理更改。销毁 HMR 时会关闭监听器并取消等待启动的重载。配置监听器在当前事务上下文之外启动，使后续通知可以进入队列。
 
+代码替换在第一次拆除前进入运行时的保留属主屏障：会销毁某个保留修订仍依赖的 preset 属主的替换，在任何插件被注销之前就被拒绝，因此被编辑的文件留在磁盘上，运行中的属主继续为其 Agent 服务。
+
 `node_modules` 之外的 `package.json` 变化使该包的配置缓存失效。仅作为配置的 manifest 不触发模块重载；作为 JSON 模块导入的 manifest 保留依赖驱动重载，位于宿主依赖图中的 manifest 保留宿主重载。专属配置监听保留原有归属。新包入口在 Loader entry 重启时生效。
 
 Loader entry 保留原始导入结果。HMR 为每个 entry 名称与配置树 base URL 保留所有不同的已导入命名空间；尚未初始化的 entry 不会覆盖其他 entry 的命名空间。HMR 将这些对象与缓存中 ModuleJob 的模块命名空间按对象身份匹配，不再重新解析 entry 名称。没有已导入命名空间的名称和 `cordis:` 内置入口仍按名称解析。因此 `exports` 或 `main` 改变后，源码重载仍使用已加载模块。

@@ -89,6 +89,16 @@ function stageProfile(home: string, name: string, bundleAnchor: string): Profile
       packageDir: join(bundleAnchor, '..'),
       patchPaths: [join(bundleAnchor, '..', 'cordis.patch.yml')],
       patches: [],
+      // Staged outside the profile's own installation, so nothing vouches for it.
+      origin: {
+        kind: 'bundle',
+        label: packageName,
+        trusted: false,
+        installAnchor: bundleAnchor,
+        packageName,
+        packageDir: join(bundleAnchor, '..'),
+        fromInstallation: false,
+      },
     }],
     patchPath: join(dir, PROFILE_PATCH_FILENAME),
     patches: [],
@@ -326,6 +336,18 @@ describe('loadProfile', () => {
       packageDir: bundleDir,
       patchPaths: [join(bundleDir, 'first.patch.yml'), join(bundleDir, 'layers', 'second.patch.yml')],
       patches: 3,
+      // The installation declares and versions this bundle, so its layer is
+      // the origin that may authorize a preset enhancement.
+      origin: {
+        kind: 'bundle',
+        label: 'multi',
+        trusted: true,
+        installAnchor: anchor,
+        packageName: 'multi',
+        packageDir: bundleDir,
+        version: '0.0.0',
+        fromInstallation: true,
+      },
     }])
     expect(composeEntries(profile.layers.map(layer => layer.patches))).toEqual([
       { id: 'a', name: pathToFileURL(join(bundleDir, 'local.js')).href, config: { v: 2 } },
@@ -580,6 +602,16 @@ describe('createRuntimeResolution', () => {
         packageDir: bundleLink,
         patchPaths: [join(bundleLink, 'cordis.patch.yml')],
         patches: [],
+        // A profile-local link the test made, not an installation-resolved bundle.
+        origin: {
+          kind: 'bundle',
+          label: 'selected-bundle',
+          trusted: false,
+          installAnchor: join(bundleLink, 'package.json'),
+          packageName: 'selected-bundle',
+          packageDir: bundleLink,
+          fromInstallation: false,
+        },
       }],
       patchPath: join(dir, PROFILE_PATCH_FILENAME),
       patches: [],
@@ -630,6 +662,16 @@ describe('createRuntimeResolution', () => {
         packageDir,
         patchPaths: [join(packageDir, 'cordis.patch.yml')],
         patches: [],
+        // Both layers are staged packages this test wrote, not installation declarations.
+        origin: {
+          kind: 'bundle',
+          label: packageName,
+          trusted: false,
+          installAnchor: join(packageDir, 'package.json'),
+          packageName,
+          packageDir,
+          fromInstallation: false,
+        },
       })),
       patchPath: join(dir, PROFILE_PATCH_FILENAME),
       patches: [],

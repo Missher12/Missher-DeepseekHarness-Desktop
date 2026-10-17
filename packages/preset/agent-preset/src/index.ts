@@ -26,6 +26,13 @@ export default class AgentPreset {
   constructor(private readonly ctx: Context, private readonly config: Config) {}
 
   async* [Service.init]() {
-    yield await this.ctx.agentPresets.register(this.config)
+    // The declaring row reports both of its real ids: the hierarchical Loader
+    // entry id for identity and liveness, and the patch-local id that profile
+    // layers target, which is the key its composition origin is recorded under.
+    const entry = this.ctx.fiber.entry
+    yield await this.ctx.agentPresets.register(this.config, {
+      ...(entry === undefined ? {} : { entryId: entry.id, patchId: entry.options.id }),
+      fiber: this.ctx.fiber,
+    })
   }
 }

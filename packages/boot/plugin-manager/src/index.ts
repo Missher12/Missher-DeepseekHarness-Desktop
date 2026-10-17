@@ -15,7 +15,8 @@ import { TypertRemoteService, Remote } from '@deepseek-ai/dsh-typert-protocol'
 import { pluginEntryId, readPluginInventory } from '@deepseek-ai/dsh-host-plugin-inventory'
 import {
   readPluginMeta, readProfileManifest, resolveBundleDir, loadOverlayPatches, composeEntries,
-  reconcileProfilePatches, readProfilePatches, OPTIONAL_BUNDLES, bundlePatchPaths,
+  readProfilePatchLayers, reconcileProfilePatches, withCompositionOwners, OPTIONAL_BUNDLES, bundlePatchPaths,
+  type ProposedCompositionChange, type ProfilePatchLayer,
   evaluatePluginCompatibility, readProfileCompatibility, readProfileVersionExemptions,
   setProfileVersionExemption, PROFILE_COMPATIBILITY_FILENAME,
   OFFICIAL_ON_DEMAND_CATALOG, getDshRuntimeVersion,
@@ -303,7 +304,7 @@ export class PluginManager extends TypertRemoteService {
    */
   @Remote
   async listPlugins(): Promise<PluginInfo[]> {
-    const rows = flatten(composeEntries([readProfilePatches('dsh', this.profile)]))
+    const rows = flatten(composeEntries([readProfilePatchLayers('dsh', this.profile).flatMap(layer => layer.patches)]))
     const snapshot = await readPluginInventory(this.ctx)
     return snapshot.entries.map((entry) => {
       const actual = [...this.ctx.loader.entries()].find(row => row.id === entry.entryId)
@@ -768,10 +769,15 @@ export class PluginManager extends TypertRemoteService {
       const row = (await this.listPlugins()).find(item => item.entryId === id)
       if (row === undefined) throw new ManagementFailure('unknown-plugin')
       if (row.readOnlyReason !== undefined) throw new ManagementFailure(row.readOnlyReason)
-      await writePluginEnabled(this.profile.patchPath, row.patchId, row.moduleName, enabled)
-      result.warnings = await this.reload(enabled ? [row.patchId] : [])
-      const current = (await this.listPlugins()).find(item => item.entryId === id)
-      return current?.enabled !== enabled && this.ownerContext.get('hmr') !== undefined ? 'overridden' : undefined
+      return this.protected({
+        rows: enabled ? [] : [{ id: row.patchId, module: row.moduleName }],
+        modules: [], operation: `${enabled ? 'enable' : 'disable'} plugin ${row.patchId}`,
+      }, async () => {
+        await writePluginEnabled(this.profile.patchPath, row.patchId, row.moduleName, enabled)
+        result.warnings = await this.reload(enabled ? [row.patchId] : [])
+        const current = (await this.listPlugins()).find(item => item.entryId === id)
+        return current?.enabled !== enabled && this.ownerContext.get('hmr') !== undefined ? 'overridden' : undefined
+      })
     }), { stage: 'enable', target: id, enabled }, 'plugin')
   }
 
@@ -783,10 +789,13 @@ export class PluginManager extends TypertRemoteService {
   @Remote
   setBundleEnabled(name: string, enabled: boolean): Promise<ChangeResult> {
     return this.change(result => this.configure(async () => {
-      await this.selectBundle(name, enabled)
-      if (enabled) await this.refreshPackages()
-      result.warnings = await this.reload(enabled ? this.bundleRows(name).map(row => row.id) : [])
-      if (!enabled && this.ownerContext.get('hmr') !== undefined) await this.refreshPackages()
+      const change = this.bundleChange(name, `${enabled ? 'enable' : 'disable'} bundle ${name}`)
+      await this.protected(change, async () => {
+        await this.selectBundle(name, enabled)
+        if (enabled) await this.refreshPackages()
+        result.warnings = await this.reload(enabled ? this.bundleRows(name).map(row => row.id) : [])
+        if (!enabled && this.ownerContext.get('hmr') !== undefined) await this.refreshPackages()
+      })
     }), { stage: 'enable', target: name, enabled }, 'bundle')
   }
 
@@ -804,7 +813,38 @@ export class PluginManager extends TypertRemoteService {
    */
   @Remote
   installBundle(spec: string, options?: InstallBundleOptions): Promise<ChangeResult> {
-    return this.installTransaction(spec, options)
+    // An install can replace package files, so it runs inside the same
+    // retained-owner barrier as the other management writes. The spec is parsed
+    // only to name what the install touches: an unparsable spec keeps its
+    // existing rejection path inside the transaction.
+    const change = this.installChange(spec)
+    return change === undefined
+      ? this.installTransaction(spec, options)
+      : this.protected(change, () => this.installTransaction(spec, options))
+  }
+
+  /**
+   * The package an install spec targets, for the retained-owner preflight.
+   *
+   * A registry spec names its package outright, and a local path is read from
+   * its own manifest. A git or tarball spec has no identity until it is
+   * prepared, so it is reported as unbounded: the guard then judges it against
+   * every retained revision instead of letting an empty module list pass.
+   */
+  private installChange(spec: string): ProposedCompositionChange | undefined {
+    const operation = `install ${spec}`
+    try {
+      const parsed = parseInstallSpec(anchorPathSpec(spec, this.profile.cwd))
+      if (parsed.kind === 'registry') return { rows: [], modules: [parsed.name], operation }
+      if (parsed.kind === 'path') {
+        const name = readProfileManifest('dsh', parsed.path).name
+        return { rows: [], modules: typeof name === 'string' ? [name] : [], unbounded: typeof name !== 'string', operation }
+      }
+      return { rows: [], modules: [], unbounded: true, operation }
+    } catch (_error) {
+      // An unusable spec is rejected by the transaction with its own diagnostic.
+      return undefined
+    }
   }
 
   private installTransaction(spec: string, options?: InstallBundleOptions): Promise<ChangeResult> {
@@ -989,7 +1029,13 @@ export class PluginManager extends TypertRemoteService {
   @Remote
   removeBundle(name: string): Promise<ChangeResult> {
     return this.change(async (result) => {
-      const installed = await this.configure(async () => {
+      const change = this.bundleChange(name, `remove bundle ${name}`)
+      // The barrier is taken once and held from the manifest write through the
+      // package removal: releasing it in between would let a binding attach to
+      // an owner this removal is about to unload. The HMR queue covers the
+      // configuration and reconcile segment only, so a package run that reaches
+      // the queue itself never waits on a queue this operation holds.
+      await this.protected(change, async () => {
         const bundle = (await this.listBundles()).find(item => item.name === name)
         if (bundle === undefined || !bundle.removable) throw new ManagementFailure('not-removable')
         if (this.ownerContext.get('hmr') === undefined && (this.profile.startedBundles.includes(name)
@@ -999,21 +1045,22 @@ export class PluginManager extends TypertRemoteService {
         }
         const contributions = bundle.error === undefined ? this.bundleRows(name) : []
         if (bundle.enabled) {
-          await this.selectBundle(name, false)
-          result.warnings = await this.reload()
+          await this.configure(async () => {
+            await this.selectBundle(name, false)
+            result.warnings = await this.reload()
+          })
         }
         if ([...this.ctx.loader.entries()].some(entry => entry.fiber?.uid != null
           && contributions.some(row => row.id === entry.options.id && row.name === entry.options.name))) {
           throw new ManagementFailure('bundle-in-use')
         }
-        return bundle.installed
+        if (!bundle.installed) return
+        result.packageResult = await this.runPnpm(['remove', name])
+        if (result.packageResult.exitCode !== 0 || result.packageResult.timedOut === true) {
+          throw new Error(result.packageResult.output)
+        }
+        await this.refreshPackages()
       })
-      if (!installed) return
-      result.packageResult = await this.runPnpm(['remove', name])
-      if (result.packageResult.exitCode !== 0 || result.packageResult.timedOut === true) {
-        throw new Error(result.packageResult.output)
-      }
-      await this.configure(() => this.refreshPackages())
     }, { stage: 'remove', target: name }, 'remove')
   }
 
@@ -1223,7 +1270,9 @@ export class PluginManager extends TypertRemoteService {
     const bundles = enabled ? [...previous, ...previous.includes(name) ? [] : [name]] : previous.filter(item => item !== name)
     if (JSON.stringify(previous) === JSON.stringify(bundles)) return
     manifest.dsh = { ...manifest.dsh, profile: { ...manifest.dsh?.profile, bundles } }
-    await saveManifest(this.profile.dir, manifest)
+    // Any caller of the selection writes the manifest through this boundary;
+    // nested callers already hold it, which the barrier counts.
+    await this.protected(this.bundleChange(name, `select bundle ${name}`), () => saveManifest(this.profile.dir, manifest))
     if (enabled) this.protectsManager(name)
   }
 
@@ -1261,9 +1310,33 @@ export class PluginManager extends TypertRemoteService {
     await this.ownerContext.get('pluginPackages')?.refresh()
   }
 
-  private async reload(requiredIds: readonly string[] = []): Promise<string[]> {
+  /** Rows and modules a bundle's own patch contributes, for the retained-owner preflight. */
+  private bundleChange(name: string, operation: string): ProposedCompositionChange {
+    let rows: { id: string; module?: string }[] = []
+    try {
+      rows = this.bundleRows(name).map(row => ({ id: row.id, module: row.name }))
+    } catch (_error) {
+      // An unreadable bundle contributes no rows; listBundles reports its diagnostics.
+      rows = []
+    }
+    return { rows, modules: [name], operation }
+  }
+
+  /**
+   * Run one management mutation inside the retained-owner barrier.
+   *
+   * The barrier is entered before the patch, manifest, or package files are
+   * touched, so a refused change leaves the disk, the entries, and the mounts
+   * exactly as this operation found them.
+   */
+  private protected<T>(change: ProposedCompositionChange, run: () => Promise<T>): Promise<T> {
+    return withCompositionOwners(this.ownerContext.root, change, run, 'dsh plugin')
+  }
+
+  private async reload(requiredIds: readonly string[] = [], layers?: readonly ProfilePatchLayer[]): Promise<string[]> {
     if (this.ownerContext.get('hmr') === undefined) return []
-    return reconcileProfilePatches(this.ownerContext.root, readProfilePatches('dsh', this.profile), 'dsh', requiredIds)
+    const read = layers ?? readProfilePatchLayers('dsh', this.profile)
+    return reconcileProfilePatches(this.ownerContext.root, read.flatMap(layer => layer.patches), 'dsh', requiredIds, read)
   }
 
   private async change(

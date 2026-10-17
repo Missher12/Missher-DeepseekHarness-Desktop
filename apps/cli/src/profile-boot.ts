@@ -16,8 +16,9 @@ import { fileURLToPath } from 'node:url'
 import { FiberState, type Context } from '@deepseek-ai/cordis'
 import type { PatchOptions } from '@deepseek-ai/cordis-plugin-include'
 import {
+  applyProfileComposition,
   boot,
-  readProfilePatches,
+  readProfilePatchLayers,
   createRuntimeResolution,
   initProfile,
   installFailLoud,
@@ -295,7 +296,11 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
       cwd: process.cwd(), home: resolveDshHome(),
       overlays: composed.overlays, telemetryDisabledEnv: process.env.DSH_TELEMETRY_DISABLED,
     }
-    const ctx = await boot(NAME, rootConfig, readProfilePatches(NAME, profileContext, composed.profile), async (hostCtx) => {
+    // Read the layers once: the applied composition records the per-declaration
+    // origin decisions before the Loader mounts any preset row.
+    const layers = readProfilePatchLayers(NAME, profileContext, composed.profile)
+    applyProfileComposition(profileContext, layers)
+    const ctx = await boot(NAME, rootConfig, layers.flatMap(layer => layer.patches), async (hostCtx) => {
       app.current = hostCtx
       hostCtx.provide('profileContext', profileContext)
       // Before any config-tree entry mounts, so plugins resolve all launch-time

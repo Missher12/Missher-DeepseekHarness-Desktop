@@ -55,6 +55,8 @@ Web 内置定义来自 `dsh-web-app` bundle。定义使用普通插件行；注�
 
 每个声明在启动时创建注册表拥有的 scope 和内存 Loader 树。更新或移除声明会让旧代际退役；Agent、子 Agent 和临时历史读取各自持有引用，最后一个引用释放后才销毁插件树。插件注册继承 preset scope，Agent scope 的父链接决定可见性；Agent loop 仍由宿主共享。
 
+`register(definition, identity)` 接收声明行真实的 Loader 身份：`entryId` 是 Loader 由其所在树与 include 组合出的层级 id，`patchId` 是 patch 层所针对的 id，`fiber` 是声明插件自身的 fiber。每个字段都可选，并按身份比较；它们互不派生，因此替换行不会被误认作它所替换的声明。
+
 可选的 `compactionProvider` 会在子插件加载前递归替换且仅替换一条 `@deepseek-ai/dsh-compaction-basic` 行，并保留其 group、隔离配置和兄弟插件顺序。缺少、重复或存在竞争的压缩后端会导致激活失败；省略该字段时，注册表按原样挂载声明的子插件列表。
 
 preset 的服务提供方及其消费方必须共享同一个 `cordis:group` 隔离 realm。条目局部隔离不会沿 Agent 注册 scope 传播：组外的普通 Context 查找（包括 `agent.ctx`）仍选择 Host realm。`agentPresets.serviceFor()` 显式检查保留的组合，不改变普通服务查找。
@@ -111,3 +113,13 @@ preset 的服务提供方及其消费方必须共享同一个 `cordis:group` 隔
 无。
 
 </details>
+
+## Context 宿主契约
+
+注册表暴露 `ctx.agentPresets.compactionHost`，其契约版本为 `COMPACTION_HOST_VERSION`；要求其他版本的消费者把宿主视为只读，而不是协商一个不完整的契约。
+
+`register(owner, registration)` 声明提供者模块、注册插件自身上下文、修订字符串、该注册选中的 preset 标识，以及提供者所需的宿主行或模块；该选择只作用于其后激活的修订，注册插件卸载即撤销。同一 owner、同一 origin、同一 module 可以再次注册，用更新的修订原位替换自己的选择；更换 origin 或 module 必须先 `revoke()`，因为另一个集成的在线选择不会被覆盖。
+
+`bindingFor(ctx)` 报告某个 Agent 实际绑定的修订：它的 preset、声明 owner、代号序号、它所依赖的属主是否仍然存活、它是否仍能服务该 Agent、新绑定是否还会选中它，以及是哪个注册提供了它的提供者。被注册增强的修订依赖其声明行、注册插件与注册声明的宿主节点；运行声明自身行的修订由注册表自己的作用域持有，因此声明行卸载后它仍继续服务已绑定的 Agent。不可用的修订继续报告自己的来源与提供者，而不会被当作声明的行。
+
+`revoke()` 让未来绑定回到原本的声明，而已经绑定的修订保留它已挂载的 provider，因此旧 Agent、子 Agent 与 cold-read 不会被后续选择改写。

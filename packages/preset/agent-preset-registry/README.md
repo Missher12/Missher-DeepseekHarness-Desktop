@@ -55,6 +55,8 @@ The registry writes no declarations. The `read` Remote renders one declarationâ€
 
 Each declaration eagerly creates a registry-owned scope and an in-memory Loader tree. Updating or removing a declaration retires its previous revision. Agents, children and temporary historical reads retain references; releasing the final reference disposes the retired tree. Plugin registrations inherit the preset scope, and the Agent scopeâ€™s parent link controls visibility. The Host continues to share the Agent loop.
 
+`register(definition, identity)` takes the declaring row's real Loader identity. `entryId` is the hierarchical id the Loader composes from its containing trees and includes, `patchId` is the id patch layers target, and `fiber` is the declaring plugin's own fiber. Every field is optional and compared by identity; none is derived from another, so a replacement row is never mistaken for the declaration it replaces.
+
 An optional `compactionProvider` replaces exactly one recursively nested `@deepseek-ai/dsh-compaction-basic` row before child plugins load. The replacement preserves its group, isolation settings and sibling order. Missing, duplicate or competing compaction providers reject activation; omitting the field mounts the declared child list unchanged.
 
 A preset service provider and its consumers must share one `cordis:group` isolation realm. Entry-local isolation does not propagate through the Agent registration scope: ordinary Context lookup outside the group, including `agent.ctx`, still selects the Host realm. `agentPresets.serviceFor()` explicitly inspects the retained composition; it does not change ordinary service lookup.
@@ -111,3 +113,13 @@ Existing Agents retain their plugins and prompts. New Agents build their prefixe
 None.
 
 </details>
+
+## Context host contract
+
+The registry exposes `ctx.agentPresets.compactionHost`, whose contract version is `COMPACTION_HOST_VERSION`; a consumer that requires another version treats the Host as read-only instead of negotiating a partial contract.
+
+`register(owner, registration)` names the provider module, the registering plugin's own context, a revision string, the preset ids the registration selects, and the Host rows or modules the provider needs; the selection governs only the revisions activated afterwards, and unloading the registering plugin withdraws it. The same owner, origin and module may register again to replace their own selection with a newer revision; a different origin or module must `revoke()` first, because a live selection is never overwritten by another integration.
+
+`bindingFor(ctx)` reports the revision an Agent actually bound: its preset, declaring owner, generation ordinal, whether the owners it depends on are still active, whether it can still serve that Agent, whether a new binding would select it, and which registration supplied its provider. A revision a registration enhanced depends on its declaring row, the registering plugin and the Host nodes that registration named; a revision running the declaration's own rows is held by the registry's own scope, so it keeps serving its Agents after that row is unloaded. An unavailable revision keeps reporting its own source and provider rather than the declaration's rows.
+
+`revoke()` returns future bindings to the declaration they came from, while revisions already bound keep the provider they mounted, so an old Agent, a sub-Agent and a cold reader are never rewritten by a later selection.

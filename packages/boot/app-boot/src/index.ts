@@ -17,7 +17,21 @@ import Include, { applyEntryPatches, entryListSchema, type PatchOptions } from '
 import Group from '@deepseek-ai/cordis-plugin-group'
 import { dshHomePath, resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { createLaunchEnvironmentSnapshot, type LaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
-export { readProfilePatches, resolveTelemetryPatch, type ProfileContext, type ProfilePnpmInvocation } from './profile-context.ts'
+export {
+  applyProfileComposition, presetEnhancementOrigin, profileCompositionRevision,
+  readProfilePatchLayers, readProfilePatches, resolveTelemetryPatch,
+  type AppliedCompositionHandle, type ProfileContext, type ProfilePnpmInvocation,
+} from './profile-context.ts'
+export {
+  bundleLayerStale, resolveBundleOrigin,
+  type BundleResolution, type PresetEnhancementOrigin, type ProfileLayerOrigin, type ProfilePatchLayer,
+} from './profile.ts'
+export {
+  COMPOSITION_OWNER_GUARD_VERSION, compositionOwnerGuard, compositionOwnerRefusal, provideCompositionOwnerGuard,
+  withCompositionOwners,
+  type CompositionOwnerBlock, type CompositionOwnerGuard, type CompositionOwnerOutcome, type CompositionOwnerRole,
+  type ProposedCompositionChange, type ProposedRowChange,
+} from './composition-owners.ts'
 export { sanitizeProfile } from './profile-sanitize.ts'
 export { getDshRuntimeVersion, evaluatePluginCompatibility, pluginCompatibilityWarning, type PluginCompatibility } from './plugin-compatibility.ts'
 export {
@@ -25,6 +39,9 @@ export {
   setProfileVersionExemption, type ProfileCompatibility,
 } from './profile-compatibility.ts'
 import { prepareProfilePatches } from './compatibility-preflight.ts'
+import { withCompositionOwners, type ProposedCompositionChange } from './composition-owners.ts'
+import { applyProfileComposition, type AppliedCompositionHandle } from './profile-context.ts'
+import type { ProfilePatchLayer } from './profile.ts'
 export { prepareProfileEntries, prepareProfilePatches } from './compatibility-preflight.ts'
 export { readPluginMeta, resolvePluginResource } from './package-meta.ts'
 export { ON_DEMAND_BUNDLES, OFFICIAL_ON_DEMAND_CATALOG, type OfficialBundleCatalogEntry } from './official-bundles.ts'
@@ -265,15 +282,71 @@ const bootstrapIncludes = new WeakMap<Context, Entry>()
 // reference `process.env`.
 const userPatchesSchema = entryListSchema
 
+/** Every id a patch list mentions, whether as a target or among its inserted rows. */
+function mentionedIds(patches: readonly PatchOptions[]): Set<string> {
+  const ids = new Set<string>()
+  for (const patch of patches) {
+    if (typeof patch.id === 'string') ids.add(patch.id)
+    for (const row of patch.insert ?? []) {
+      if (typeof row.id === 'string') ids.add(row.id)
+    }
+  }
+  return ids
+}
+
+/**
+ * The declarations one patch list actually makes for `id`.
+ *
+ * An `insert` container is a transport for many independent rows, so only the
+ * inserted row that carries this id is read here: naming the whole container
+ * would report every sibling row as changed whenever any one of them is edited.
+ * @param patches - one patch list.
+ * @param id - the row id being compared.
+ * @returns that row's own target entry and its inserted declaration, if any.
+ */
+function patchesMentioning(patches: readonly PatchOptions[], id: string): PatchOptions[] {
+  return patches.flatMap((patch) => {
+    const target = patch.id === id ? [withoutInsert(patch)] : []
+    const inserted = (patch.insert ?? []).filter(row => row.id === id)
+    return [...target, ...inserted]
+  })
+}
+
+/** One patch with its `insert` list removed, rather than set to `undefined`. */
+function withoutInsert(patch: PatchOptions): PatchOptions {
+  const { insert: _insert, ...rest } = patch
+  return rest
+}
+
+/**
+ * The rows a candidate profile composition actually changes.
+ *
+ * A reload re-applies the whole patch list, so naming every patched row would
+ * refuse unrelated configuration; only rows whose own patch items differ from
+ * the ones the Include currently holds are proposed changes.
+ */
+function reloadChange(entry: Entry, prepared: readonly PatchOptions[]): ProposedCompositionChange {
+  // The Include's own current patch list is the composition in effect; the
+  // candidate is judged only on the rows whose own patch items differ from it.
+  const previous = (entry.options.config as Include.Config).patches ?? []
+  const ids = new Set([...mentionedIds(previous), ...mentionedIds(prepared)])
+  const rows = [...ids]
+    .filter(id => JSON.stringify(patchesMentioning(previous, id)) !== JSON.stringify(patchesMentioning(prepared, id)))
+    .map(id => ({ id }))
+  return { rows, modules: [], operation: 'profile reload' }
+}
+
 /** Apply one complete patch generation and wait for Loader activation diagnostics.
  * @param ctx Booted root context.
  * @param patches Complete ordered patch list.
  * @param binName Diagnostic prefix.
  * @param requiredIds Explicit enablement targets whose existing failures also reject reconciliation.
+ * @param layers Composition layers the applier read, recorded as the applied composition.
  * @returns Diagnostics for unchanged pre-existing inactive entries; new or changed failures reject.
  */
 export async function reconcileProfilePatches(
   ctx: Context, patches: PatchOptions[], binName: string, requiredIds: readonly string[] = [],
+  layers?: readonly ProfilePatchLayer[],
 ): Promise<string[]> {
   const entry = bootstrapIncludes.get(ctx)
   if (entry === undefined) throw new Error(`${binName}: profile reload requires the root Include entry`)
@@ -288,19 +361,41 @@ export async function reconcileProfilePatches(
   // The recomposition judges the rows the launch judged, resolved from the file this Include read.
   const parentURL = new URL('.', new URL(includeConfig.path, entry.parent.tree.ctx.baseUrl)).href
   const prepared = prepareProfilePatches(ctx, patches, parentURL, binName)
-  await entry.update({ config: { ...includeConfig, patches: prepared } })
-  const results = await Promise.allSettled(previousFibers.map(({ fiber }) => fiber.await()))
-  await ctx.loader.await()
-  const failures = await inactiveEntries(ctx)
-  const introduced = failures.filter(failure => requiredIds.includes(failure.entry.options.id) || !previousFailures.some(previous =>
-    previous.entry === failure.entry && previous.fiber === failure.entry.fiber
-    && previous.options === JSON.stringify(failure.entry.options) && previous.diagnostic === inactiveDiagnostic(failure)))
-  if (introduced.length > 0) throw new Error(activationDiagnostic(binName, introduced).trimEnd())
-  for (const [index, result] of results.entries()) {
-    if (result.status === 'rejected' && !previousFibers[index]?.failed) throw result.reason
+  const change = reloadChange(entry, prepared)
+  const applied: { handle?: AppliedCompositionHandle } = {}
+  const settled: { failures?: Awaited<ReturnType<typeof inactiveEntries>> } = {}
+  try {
+    await withCompositionOwners(ctx, change, async () => {
+      const profile = ctx.get('profileContext')
+      // Record the applying composition before the Loader mounts its rows, so a
+      // declaration reads the origin of the composition it actually belongs to.
+      if (profile !== undefined && layers !== undefined) applied.handle = applyProfileComposition(profile, layers)
+      await entry.update({ config: { ...includeConfig, patches: prepared } })
+      // `entry.update` returns once the change is dispatched, not once the rows
+      // it restarted have finished disposing and mounting, so the transport for
+      // that work runs inside the same transaction: a binding cannot attach to
+      // an owner that is still being torn down or rebuilt.
+      const results = await Promise.allSettled(previousFibers.map(({ fiber }) => fiber.await()))
+      await ctx.loader.await()
+      const failures = await inactiveEntries(ctx)
+      const introduced = failures.filter(failure => requiredIds.includes(failure.entry.options.id) || !previousFailures.some(previous =>
+        previous.entry === failure.entry && previous.fiber === failure.entry.fiber
+        && previous.options === JSON.stringify(failure.entry.options) && previous.diagnostic === inactiveDiagnostic(failure)))
+      if (introduced.length > 0) throw new Error(activationDiagnostic(binName, introduced).trimEnd())
+      for (const [index, result] of results.entries()) {
+        if (result.status === 'rejected' && !previousFibers[index]?.failed) throw result.reason
+      }
+      settled.failures = failures
+    }, binName)
+    ctx.emit('app-boot/config-reload')
+    return (settled.failures ?? []).map(inactiveDiagnostic)
+  } catch (error) {
+    // The application phase failed: an update that rejected, an introduced
+    // inactive entry, or a rejected fiber. Nothing of this generation is in
+    // effect, so the recorded composition returns to what it replaced.
+    applied.handle?.rollback()
+    throw error
   }
-  ctx.emit('app-boot/config-reload')
-  return failures.map(inactiveDiagnostic)
 }
 
 /**

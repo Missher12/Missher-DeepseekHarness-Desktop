@@ -6,9 +6,10 @@
  */
 
 import { spawnSync } from 'node:child_process'
+import { createRequire } from 'node:module'
 import { existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
@@ -17,6 +18,12 @@ import { AclWriteGrant, tempWriteSid, workspaceWriteSid } from '../src/index.ts'
 
 const isWin32 = process.platform === 'win32'
 const runnerEntry = fileURLToPath(new URL('../src/runner.ts', import.meta.url))
+const nativePipeProbe = fileURLToPath(new URL('./fixtures/win32-pipe-redirect-probe.mjs', import.meta.url))
+const koffiPath = createRequire(import.meta.url).resolve('koffi')
+// The native redirect probe is opt-in: the broad Windows PR lane keeps its
+// current coverage, and the narrow manual lane sets this to run the two
+// primitives under the real restricted token.
+const runNativePipeProbe = process.env.DSH_WINDOWS_ACL_NATIVE_PIPE === '1'
 
 // Functional probe, not where.exe: spawnSync never throws on a missing
 // binary (status null) and where.exe exits 1 without pwsh — only an actual
@@ -30,6 +37,25 @@ function runRunner(args: string[], timeoutMs = 30_000) {
     timeout: timeoutMs,
     encoding: 'utf8',
   })
+}
+
+/** Structured report the native probe prints for one restricted mode. */
+interface NativeReport {
+  createPipe: { code: number; error: number }
+  duplicate: { code: number; error: number }
+  inheritable: {
+    created: { read: { inherit: number }; write: { inherit: number } }
+    parentCopy: { inherit: number }
+  }
+  read: { matches: boolean; bytes: number }
+  eof: { code: number; error: number }
+  closes: { handle: string; code: number; error: number }[]
+  closedObservations: Record<string, { ok: number; error: number }>
+  leakedHandles: string[]
+  injected: { close: { code: number; error: number; succeeds: boolean } } | null
+  failure: { message: string } | null
+  ok: boolean
+  failures: string[]
 }
 
 describe.skipIf(!isWin32 || !pwshAvailable())('windows-acl runner', () => {
@@ -325,6 +351,98 @@ describe.skipIf(!isWin32 || !pwshAvailable())('windows-acl runner', () => {
       expect(result.stdout, `mode: ${mode}`).toContain('pipe:DENIED')
     }
   }, 30_000)
+
+  it.skipIf(!runNativePipeProbe)(
+    'creates the redirect pipe and the non-inheritable parent copy under the restricted token', () => {
+      // The .NET redirect preparation this pins: CreatePipe with a null
+      // security descriptor (so the token default DACL decides) and
+      // DuplicateHandle(GetCurrentProcess(), read, GetCurrentProcess(), parent,
+      // 0, FALSE, DUPLICATE_SAME_ACCESS). The confined child reports both native
+      // return codes, the inheritance flags, the read/write round-trip, EOF, and
+      // whether every handle it created was closed again.
+      //
+      // Both modes run and their structured reports are written before any
+      // assertion, so a failing first mode cannot destroy the other mode's
+      // native evidence. The JSON reporter keeps only failure details, so the
+      // per-mode report file is the receipt a green remote run can upload.
+      const reportDir = process.env.DSH_WINDOWS_ACL_REPORT_DIR === undefined
+        ? join(scratchRoot, 'native-redirect-reports')
+        : resolve(process.cwd(), process.env.DSH_WINDOWS_ACL_REPORT_DIR)
+      mkdirSync(reportDir, { recursive: true })
+      // Keep fixture paths out of the uploaded report.
+      const scrub = (text: string): string => [scratchRoot, writableDir, isolatedTemp, publicProbeDir ?? '']
+        .filter(value => value !== '')
+        .reduce((current, value) => current.replaceAll(value, '<fixture>'), text)
+      writeFileSync(join(reportDir, 'manifest.json'), JSON.stringify({
+        node: process.version,
+        platform: process.platform,
+        arch: process.arch,
+        commit: process.env.GITHUB_SHA ?? null,
+        runId: process.env.GITHUB_RUN_ID ?? null,
+      }, null, 2))
+
+      interface ModeRun {
+        mode: 'workspace-write' | 'read-only'
+        status: number | null
+        signal: string | null
+        report?: NativeReport
+        parseError?: string
+      }
+      const runs: ModeRun[] = []
+      for (const mode of ['workspace-write', 'read-only'] as const) {
+        const result = runRunner([
+          '--workspace', writableDir, '--temp', isolatedTemp, '--mode', mode,
+          '--', process.execPath, nativePipeProbe, koffiPath,
+        ])
+        const line = result.stdout.split(/\r?\n/u).find(candidate => candidate.startsWith('{'))
+        const run: ModeRun = { mode, status: result.status, signal: result.signal }
+        if (line === undefined) {
+          run.parseError = 'the native probe printed no report'
+        } else {
+          try {
+            run.report = JSON.parse(line) as NativeReport
+          } catch (error) {
+            run.parseError = `unreadable native report: ${error instanceof Error ? error.message : String(error)}`
+          }
+        }
+        // The evidence is durable before any assertion can throw.
+        writeFileSync(join(reportDir, `${mode}.json`), JSON.stringify({
+          ...run,
+          stderr: scrub(result.stderr ?? ''),
+          stdout: scrub(line ?? ''),
+        }, null, 2))
+        runs.push(run)
+      }
+
+      const details = (run: ModeRun): string => `mode ${run.mode}: ${JSON.stringify({
+        status: run.status,
+        signal: run.signal,
+        parseError: run.parseError,
+        report: run.report,
+      })}\nsee ${join(reportDir, `${run.mode}.json`)}`
+      for (const run of runs) {
+        expect(run.parseError, details(run)).toBeUndefined()
+        const report = run.report
+        if (report === undefined) throw new Error(details(run))
+        expect(report.failure, details(run)).toBeNull()
+        expect(report.createPipe, details(run)).toEqual({ code: 1, error: 0 })
+        expect(report.duplicate, details(run)).toEqual({ code: 1, error: 0 })
+        expect(report.inheritable.created.read.inherit, details(run)).toBe(1)
+        expect(report.inheritable.created.write.inherit, details(run)).toBe(1)
+        expect(report.inheritable.parentCopy.inherit, details(run)).toBe(0)
+        expect(report.read.matches, details(run)).toBe(true)
+        expect(report.read.bytes, details(run)).toBeGreaterThan(0)
+        expect(report.eof, details(run)).toEqual({ code: 0, error: 109 })
+        expect(report.closes.every(entry => entry.code === 1), details(run)).toBe(true)
+        expect(report.leakedHandles, details(run)).toEqual([])
+        expect(Object.values(report.closedObservations).every(entry => entry.ok === 0 && entry.error === 6), details(run))
+          .toBe(true)
+        expect(report.injected, details(run)).toBeNull()
+        expect(report.failures, details(run)).toEqual([])
+        expect(report.ok, details(run)).toBe(true)
+        expect(run.status, details(run)).toBe(0)
+      }
+    }, 30_000)
 
   it('mode-downgrade leak regression: a STANDING workspace grant is inert under read-only and effective again on re-upgrade', () => {
     // The reported defect: a session that materialized its grant in

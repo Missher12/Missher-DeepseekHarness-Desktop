@@ -45,7 +45,7 @@ export interface PresetMount {
  * @param root - the subtree root to test membership against.
  * @returns true when `fiber` belongs to `root`'s subtree.
  */
-function withinFiber(fiber: Fiber, root: Fiber): boolean {
+export function withinFiber(fiber: Fiber, root: Fiber): boolean {
   let current = fiber
   while (true) {
     if (current === root) return true

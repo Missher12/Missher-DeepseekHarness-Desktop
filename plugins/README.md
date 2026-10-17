@@ -25,6 +25,16 @@ Each “Latest release” link above opens the newest accepted regular Release f
 
 The repository's [older plugin-set record](../distribution/plugin-set.json) and [repository record](../cordis-repositories.json) retain an earlier release; use the package list attached to the selected release for installation.
 
+## Plugin previews
+
+These screenshots show the real interfaces of the listed plugin releases in isolated test profiles with synthetic data. Select an image for installation instructions, more screenshots and compatibility details in its repository.
+
+|  |  |
+| --- | --- |
+| **Usage Statistics 0.2.2**<br>[![Usage Statistics](https://raw.githubusercontent.com/Missher12/Missher-DSH-Usage-Statistics/4b82f3b5214ebff88d383d1633220a6031b5058e/docs/images/usage-0.2.2-light.png)](https://github.com/Missher12/Missher-DSH-Usage-Statistics) | **Reasoning Effort 0.7.6**<br>[![Reasoning Effort](https://raw.githubusercontent.com/Missher12/Missher-DSH-Reasoning-Effort/317271f1eaa3d268f8d91c7c86b468ca8cbac67b/docs/images/reasoning-slider-alpha5.png)](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) |
+| **Output Renderer 0.1.3**<br>[![Output Renderer](https://raw.githubusercontent.com/Missher12/Missher-DSH-Output-Renderer/ff979cfb33081183915bb285e4095a52542d0d5c/docs/images/output-process-alpha5.png)](https://github.com/Missher12/Missher-DSH-Output-Renderer) | **Project Ops 0.4.0**<br>[![Project Ops](https://raw.githubusercontent.com/Missher12/Missher-DSH-Project-Ops/a283f8ee1e5324253e55ce69d48f6fbfd3fed260/docs/images/task-panel-0.4.0.jpg)](https://github.com/Missher12/Missher-DSH-Project-Ops) |
+| **MSE Learning 0.10.0**<br>[![MSE Learning](https://raw.githubusercontent.com/Missher12/Missher-MSE-Learning/50a26bca5dc63222bd5e98bd6197f45cf98e7ce0/docs/images/official-alpha5-zh-r11.png)](https://github.com/Missher12/Missher-MSE-Learning) | **Session Bridge 0.1.3**<br>[![Session Bridge](https://raw.githubusercontent.com/Missher12/Missher-DSH-Session-Bridge/6a0017fae8aa1e8f46c76695aa33208661a0aceb/docs/images/header-full-alpha2.png)](https://github.com/Missher12/Missher-DSH-Session-Bridge) |
+
 ## Private and independent projects
 
 | Project | What it does | Install in |

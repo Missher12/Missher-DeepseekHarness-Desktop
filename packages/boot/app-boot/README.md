@@ -220,3 +220,13 @@ This Dev Note is working context for maintainers: open design questions and dire
 `renderConfigDump` output is a loadable YAML document whose `# ==` source comments and `!!js`-verbatim rendering serve the `--dump-config` diagnostic. Nothing promises byte stability across package versions; decide whether the dump becomes a serialization contract before anything consumes it programmatically. JSON Schema output follows the separate [pre-stable compatibility policy](../../../apps/cli/reference/README.md#config-schema-dump).
 
 </details>
+
+## Composition origins and protected owners
+
+`readProfilePatchLayers` returns the ordered composition inputs with the origin that vouches for each, before anything is flattened: a bundle layer counts only while the installation anchor declares that package, resolves it, and still reports the recorded directory and version.
+
+`presetEnhancementOrigin` reads the decision the applied composition recorded for one preset declaration row, and `applyProfileComposition` is the only point that records it; reading layers for a proposed or rejected configuration never changes what the runtime has in effect.
+
+The barrier holds new bindings of the affected owners, not unrelated work: a caller keeps its own queues around the segments that need them, so a long package run outside those segments neither waits for nor blocks them. `compositionOwnerRefusal` is the stable restart-required error every entry point raises for a blocked change.
+
+`provideCompositionOwnerGuard` publishes the guard that refuses a composition change which would remove, replace, or restart an owner a retained preset revision still depends on, and `withCompositionOwners` runs one change under that decision and the barrier it takes.

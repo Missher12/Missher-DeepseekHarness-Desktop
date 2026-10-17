@@ -8,7 +8,7 @@ import type { Include } from '@deepseek-ai/cordis-plugin-include'
 import { FSWatcher, watch, type ChokidarOptions } from 'chokidar'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { readFileSync, realpathSync } from 'node:fs'
-import { readProfileManifest, readProfilePatches, reconcileProfilePatches, PROFILE_PATCH_FILENAME } from '@deepseek-ai/dsh-app-boot'
+import { readProfileManifest, readProfilePatchLayers, reconcileProfilePatches, withCompositionOwners, PROFILE_PATCH_FILENAME, type ProposedCompositionChange } from '@deepseek-ai/dsh-app-boot'
 import type {} from '@deepseek-ai/dsh-cmdline'
 import { handleError } from './error.ts'
 import { PackageManifests } from './package-manifest.ts'
@@ -340,8 +340,8 @@ class Hmr extends Service {
           }
         })])
         if (inputs === lastInputs) return
-        const patches = readProfilePatches('dsh', profile)
-        const warnings = await reconcileProfilePatches(this.ownerContext.root, patches, 'dsh')
+        const layers = readProfilePatchLayers('dsh', profile)
+        const warnings = await reconcileProfilePatches(this.ownerContext.root, layers.flatMap(layer => layer.patches), 'dsh', [], layers)
         lastInputs = inputs
         lastBundles = bundles
         for (const diagnostic of warnings) this.ctx.logger.warn(diagnostic)
@@ -676,29 +676,41 @@ class Hmr extends Service {
     }
 
     const removed = new Set<Plugin>()
+    // Replacing code destroys the running owners of every fiber it covers,
+    // including a revision's registered provider, so the same retained-owner
+    // decision runs before the first teardown.
+    const replacementChange: ProposedCompositionChange = {
+      rows: attempts.flatMap(attempt => attempt.fibers.flatMap(row =>
+        row.fiber.entry?.id === undefined ? [] : [{ id: row.fiber.entry.id }])),
+      modules: [],
+      fibers: attempts.flatMap(attempt => attempt.fibers.map(row => row.fiber)),
+      operation: 'hot-replace plugin code',
+    }
     try {
-      for (const { previous: plugin, replacement, filename, runtime, fibers, replacements, activated } of attempts) {
-        if (!runtime) continue
-        const path = relative(this.baseDir, fileURLToPath(filename))
+      await withCompositionOwners(this.ctx, replacementChange, async () => {
+        for (const { previous: plugin, replacement, filename, runtime, fibers, replacements, activated } of attempts) {
+          if (!runtime) continue
+          const path = relative(this.baseDir, fileURLToPath(filename))
 
-        removed.add(plugin)
-        try {
-          this.ctx.registry.delete(plugin)
-          await Promise.all(fibers.map(({ fiber }) => fiber.await()))
-        } catch (err) {
-          this.ctx.logger.warn('failed to dispose plugin at %C', path)
-          this.ctx.logger.warn(err)
-        }
+          removed.add(plugin)
+          try {
+            this.ctx.registry.delete(plugin)
+            await Promise.all(fibers.map(({ fiber }) => fiber.await()))
+          } catch (err) {
+            this.ctx.logger.warn('failed to dispose plugin at %C', path)
+            this.ctx.logger.warn(err)
+          }
 
-        try {
-          await reload(replacement, fibers, replacements, activated)
-          this.ctx.logger.info('reload plugin at %C', path)
-        } catch (err) {
-          this.ctx.logger.warn('failed to reload plugin at %C', path)
-          this.ctx.logger.warn(err)
-          throw err
+          try {
+            await reload(replacement, fibers, replacements, activated)
+            this.ctx.logger.info('reload plugin at %C', path)
+          } catch (err) {
+            this.ctx.logger.warn('failed to reload plugin at %C', path)
+            this.ctx.logger.warn(err)
+            throw err
+          }
         }
-      }
+      }, 'dsh')
     } catch (error) {
       // Restore caches and re-register old plugins after a replacement failure.
       rollback()

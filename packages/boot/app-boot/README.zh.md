@@ -220,3 +220,13 @@ Loader 结算后，app-boot 在仅 optional 条目未激活时输出警告。如
 `renderConfigDump` 的输出是一份可加载的 YAML 文档，其 `# ==` 来源注释与 `!!js` 原样渲染服务于 `--dump-config` 诊断。任何内容都不承诺跨包版本的字节稳定性；在程序化消费该输出之前，请决定 dump 是否成为序列化约定。JSON Schema 输出遵循单独的 [pre-stable 兼容性规则](../../../apps/cli/reference/README.zh.md#config-schema-dump)。
 
 </details>
+
+## 组合来源与受保护 owner
+
+`readProfilePatchLayers` 在尚未扁平化前返回各层组合输入及其担保来源：只有当安装锚点声明该包、能解析它、且记录的真实目录与版本仍然一致时，该 bundle 层才被担保。
+
+`presetEnhancementOrigin` 读取已应用组合为某个 preset 声明行记录下的判定，`applyProfileComposition` 是唯一记录该判定的入口；为拟议或被拒配置读取分层不会改变运行时实际生效的内容。
+
+该屏障只挂起受影响属主的新绑定，而不是无关工作：调用方在需要队列的段上自行持有队列，因此这些段之外的长时间包运行既不等待也不阻塞它们。`compositionOwnerRefusal` 是所有入口对受阻改动抛出的统一 restart-required 错误。
+
+`provideCompositionOwnerGuard` 发布守卫，用于拒绝会移除、替换或重启仍被某个保留 preset 修订依赖的 owner 的组合变更；`withCompositionOwners` 在该判定及其屏障下执行一次变更。

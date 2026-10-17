@@ -1,5 +1,6 @@
 /** Client-safe payloads and event declarations owned by the agent-preset domain. */
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { PresetCompactionState } from './compaction-host.ts'
 
 
 /**
@@ -16,6 +17,8 @@ export interface AgentPresetRow {
   readonly description?: string
   /** Why this preset cannot compose a session; absent when it can. */
   readonly broken?: string
+  /** How this declaration supplies automatic compaction, including a skipped selection and why. */
+  readonly compaction?: PresetCompactionState
 }
 
 /** The roster one deployment currently supplies. */

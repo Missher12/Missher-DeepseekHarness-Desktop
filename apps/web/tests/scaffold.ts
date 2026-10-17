@@ -732,6 +732,17 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
         packageDir,
         patchPaths: [join(packageDir, 'cordis.patch.yml')],
         patches: [],
+        // An extra anchor the scenario named, not a bundle the harness's own
+        // installation declares and versions, so nothing vouches for it.
+        origin: {
+          kind: 'bundle',
+          label: manifest.name,
+          trusted: false,
+          installAnchor: anchor,
+          packageName: manifest.name,
+          packageDir,
+          fromInstallation: false,
+        },
       }
     }))
     const profile: Profile = { skippedBundles: [],

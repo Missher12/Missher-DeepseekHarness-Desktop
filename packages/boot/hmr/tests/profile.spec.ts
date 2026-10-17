@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Timer from '@deepseek-ai/cordis-plugin-timer'
-import { boot, initProfile, readProfileManifest, readProfilePatches, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
+import { boot, initProfile, readProfileManifest, readProfilePatches, COMPOSITION_OWNER_GUARD_VERSION, provideCompositionOwnerGuard, type CompositionOwnerGuard, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
 import { withFileLock } from '@deepseek-ai/dsh-atomic-write'
 import { FSWatcher } from 'chokidar'
 import { expect, it, onTestFinished, vi } from 'vitest'
@@ -23,7 +23,7 @@ vi.mock('chokidar', async (original) => {
   } }
 })
 
-async function fixture(beforeWatch?: (profile: ProfileContext) => void) {
+async function fixture(beforeWatch?: (profile: ProfileContext) => void, prepare?: (host: Context) => void) {
   const home = realpathSync(mkdtempSync(join(tmpdir(), 'hmr-profile-')))
   const dir = join(home, 'profiles', 'test')
   initProfile(dir, [])
@@ -42,8 +42,9 @@ async function fixture(beforeWatch?: (profile: ProfileContext) => void) {
   const start = watchers.length
   const ctx = await boot('test', join(dir, 'cordis.yml'), readProfilePatches('test', profile), (host) => {
     beforeWatch?.(profile)
+    prepare?.(host)
     host.provide('profileContext', profile)
-    host.provide('appReady', { onReady(listener) { commit = listener; return () => { commit = undefined } } })
+    host.provide('appReady', { onReady(listener: () => void) { commit = listener; return () => { commit = undefined } } })
     host.loader.builtins.timer = Timer
     host.loader.builtins.hmr = Hmr
     host.loader.builtins.probe = { apply(ctx: Context, config: { value: string }) { ctx.provide('profileProbe', config.value) } }
@@ -204,4 +205,64 @@ it('applies a patch edited after boot parsing but before watcher registration', 
   f.emit(0, f.profile.patchPath)
   await f.drain()
   expect(f.ctx.get('profileProbe')).toBe('edited-during-boot')
+})
+
+/** A guard that refuses any change naming `probe`, through the published Host contract. */
+function probeGuard(blocked: boolean): CompositionOwnerGuard {
+  return {
+    version: COMPOSITION_OWNER_GUARD_VERSION,
+    revision: 1,
+    exclusive: async (change, run) => {
+      const touched = change.unbounded === true || change.rows.some(row => row.id === 'probe')
+      if (!blocked || !touched) return { kind: 'applied', value: await run() }
+      return {
+        kind: 'blocked', operation: change.operation,
+        blocked: [{ agentPreset: 'standard', owner: 'probe', role: 'declaration' }],
+      }
+    },
+  }
+}
+
+it('refuses a configuration refresh before recomposition while the owner is retained', async () => {
+  const reached = Promise.withResolvers<readonly string[]>()
+  const guard: CompositionOwnerGuard = {
+    version: COMPOSITION_OWNER_GUARD_VERSION,
+    revision: 1,
+    exclusive: (change, run) => {
+      const touched = change.unbounded === true || change.rows.some(row => row.id === 'probe')
+      if (!touched) return probeGuard(false).exclusive(change, run)
+      reached.resolve(change.rows.map(row => row.id))
+      return Promise.resolve({
+        kind: 'blocked' as const, operation: change.operation,
+        blocked: [{ agentPreset: 'standard', owner: 'probe', role: 'declaration' as const }],
+      })
+    },
+  }
+  const f = await fixture(undefined, (host) => { provideCompositionOwnerGuard(host, guard) })
+  f.commit()
+  await f.drain()
+  // Identities are captured, never spelled out: the hierarchical ids carry the
+  // Include prefix, so the patched row is compared by the objects themselves.
+  const fibers = new Map([...f.ctx.loader.entries()].map(entry => [entry.id, entry.fiber]))
+
+  // The user edits the profile patch in an external editor: HMR may only refuse
+  // to apply it, and must leave exactly that file and the running owner as they were.
+  const edited = JSON.stringify([{ insert: [
+    { id: 'timer', name: 'cordis:timer' },
+    { id: 'hmr', name: 'cordis:hmr', config: { root: [] } },
+    { id: 'probe', name: 'cordis:probe', config: { value: 'edited' } },
+  ] }])
+  writeFileSync(f.profile.patchPath, edited)
+  f.emit(0, f.profile.patchPath)
+  // Deterministic handshake: the refusal itself is the event this test waits for.
+  // Only the row whose own patch items differ is a candidate; the rewritten
+  // timer and hmr items are identical to the running ones, so they stay.
+  expect(await reached.promise).toEqual(['probe'])
+
+  expect(readFileSync(f.profile.patchPath, 'utf8')).toBe(edited)
+  expect(f.ctx.get('profileProbe')).toBe('initial')
+  expect([...f.ctx.loader.entries()].map(entry => entry.id)).toEqual([...fibers.keys()])
+  for (const [id, fiber] of fibers) {
+    expect([...f.ctx.loader.entries()].find(entry => entry.id === id)?.fiber).toBe(fiber)
+  }
 })

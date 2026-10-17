@@ -7,7 +7,7 @@ import { entryListSchema, type PatchOptions } from '@deepseek-ai/cordis-plugin-i
 import yaml from 'js-yaml'
 import type { Entry, EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
 import type {} from '@deepseek-ai/dsh-hmr'
-import { composeEntries, loadProfileDirectory, readProfilePatches, reconcileProfilePatches } from '@deepseek-ai/dsh-app-boot'
+import { composeEntries, loadProfileDirectory, readProfilePatchLayers, reconcileProfilePatches, withCompositionOwners } from '@deepseek-ai/dsh-app-boot'
 import { withFileLock, writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
 import { isMap, isSeq, parseDocument, Scalar, visit } from 'yaml'
 
@@ -92,8 +92,9 @@ export class ConfigEditor extends Service {
       const path = this.documentPath
       await withFileLock(join(this.ownerContext.profileContext.dir, 'package.json'), async () => {
         if (!this.entries().includes(entry) || entry.fiber === undefined) throw new Error('Configuration entry is no longer available')
-        const beforePatches = readProfilePatches('dsh', this.ownerContext.profileContext)
-        await reconcileProfilePatches(this.ownerContext.root, beforePatches, 'dsh')
+        const beforeLayers = readProfilePatchLayers('dsh', this.ownerContext.profileContext)
+        const beforePatches = beforeLayers.flatMap(layer => layer.patches)
+        await reconcileProfilePatches(this.ownerContext.root, beforePatches, 'dsh', [], beforeLayers)
         if (!this.entries().includes(entry)) throw new Error('Configuration entry changed during reload')
         const current = structuredClone((entry.options.config ?? {}) as Record<string, unknown>)
         const inherited = this.inherited(entry, loadProfileDirectory('dsh', this.ownerContext.profileContext.dir, this.ownerContext.profileContext.installAnchor))
@@ -134,19 +135,30 @@ export class ConfigEditor extends Service {
         } })
         const profile = this.ownerContext.profileContext
         const loaded = loadProfileDirectory('dsh', profile.dir, profile.installAnchor)
-        const patches = readProfilePatches('dsh', profile, { ...loaded, patches: yaml.load(String(document), { schema: entryListSchema }) as PatchOptions[] })
+        const layers = readProfilePatchLayers('dsh', profile, { ...loaded, patches: yaml.load(String(document), { schema: entryListSchema }) as PatchOptions[] })
+        const patches = layers.flatMap(layer => layer.patches)
         const effective = flatten(composeEntries([patches])).find(row => row.id === entry.options.id)
         if (!isDeepStrictEqual(effective?.config ?? {}, next)) {
           throw new Error(`Configuration for "${entry.options.id}" is overridden by a home patch or command-line overlay`)
         }
-        await writeFileAtomic(path, String(document), { mode: 0o600 })
-        try {
-          await reconcileProfilePatches(this.ownerContext.root, patches, 'dsh', [entry.options.id])
-        } catch (error) {
-          await writeFileAtomic(path, before, { mode: 0o600 })
-          await reconcileProfilePatches(this.ownerContext.root, beforePatches, 'dsh')
-          throw error
-        }
+        // The retained-owner barrier is entered before the first write, so a
+        // refused edit leaves the file, the entries, and the mounts untouched
+        // and an Agent binding created during the write cannot attach to an
+        // owner this edit removes.
+        await withCompositionOwners(this.ownerContext.root, {
+          rows: [{ id: entry.options.id, module: entry.options.name }],
+          modules: [],
+          operation: `configuration edit for ${entry.options.id}`,
+        }, async () => {
+          await writeFileAtomic(path, String(document), { mode: 0o600 })
+          try {
+            await reconcileProfilePatches(this.ownerContext.root, patches, 'dsh', [entry.options.id], layers)
+          } catch (error) {
+            await writeFileAtomic(path, before, { mode: 0o600 })
+            await reconcileProfilePatches(this.ownerContext.root, beforePatches, 'dsh', [], beforeLayers)
+            throw error
+          }
+        }, 'dsh')
       })
     }
     const hmr = this.ownerContext.get('hmr')

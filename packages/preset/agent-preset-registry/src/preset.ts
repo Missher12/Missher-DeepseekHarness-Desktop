@@ -1,4 +1,5 @@
 import type { Volatile } from '@deepseek-ai/cordis'
+import type { PresetCompactionState } from './compaction-host.ts'
 /** Public preset roster and selection configuration. */
 /** One declared preset and its current activation failure, if any. */
 export interface AgentPreset {
@@ -7,6 +8,8 @@ export interface AgentPreset {
   readonly description?: string
   readonly order?: number
   readonly broken?: string
+  /** How this declaration supplies automatic compaction, including a skipped selection and why. */
+  readonly compaction?: PresetCompactionState
 }
 
 /** Registry selection policy. */

@@ -136,9 +136,14 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Registry of YAML-declared presets and the revisions live Agents retain.',
     methods: [
       {
-        signature: 'async register(definition: PresetDefinition): Promise<() => Promise<void>>',
+        signature: 'readonly compactionHost: CompactionHostCapability',
+        description: 'Versioned surface a compaction provider integration registers through.',
+        parameters: [],
+      },
+      {
+        signature: 'async register(definition: PresetDefinition, identity: PresetDeclarationIdentity = {}): Promise<() => Promise<void>>',
         description: 'Register and eagerly load a definition; activation failure remains visible in the roster.',
-        parameters: [{ name: 'definition', description: 'Parsed configuration supplied by the declaring plugin.' }],
+        parameters: [{ name: 'definition', description: 'Parsed configuration supplied by the declaring plugin.' }, { name: 'identity', description: 'Real Loader identity of the declaring row, when it has one.' }],
         returns: 'Definition disposer after activation or its diagnostic settles; the declaring plugin owns it.',
       },
       {
@@ -179,9 +184,10 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: 'composeFrom(ctx: Context, parent: Context): string | undefined',
-        description: 'Join a child to the exact revision retained by its parent.',
+        description: 'Join a child to the exact revision retained by its parent.\n\nThis path is synchronous, so it cannot queue behind a composition change that holds the parent\'s revision: it refuses instead of joining a revision the change is about to remove or restart.',
         parameters: [{ name: 'ctx', description: 'Child Agent context.' }, { name: 'parent', description: 'Parent Agent context.' }],
         returns: 'Inherited preset id, or undefined in a preset-free composition.',
+        throws: ['when the parent\'s revision is held by a composition change.'],
       },
       {
         signature: 'composedPreset(ctx: Context): string | undefined',
@@ -4775,6 +4781,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface AgentOptions {\n    provider?: string;\n    model?: string;\n    reasoningEffort?: ReasoningEffortId;\n    maxTokens?: number;\n}',
   },
   {
+    name: 'AgentPresetBinding',
+    declaration: 'export interface AgentPresetBinding {\n    readonly agentPreset: string;\n    readonly owner: string;\n    readonly generation: number;\n    readonly ownerAlive: boolean;\n    readonly available: boolean;\n    readonly compactionProvider?: string;\n    readonly compactionSource: \'declaration\' | \'registration\';\n    readonly selectable: boolean;\n    readonly registrationOrigin?: string;\n    readonly registrationRevision?: string;\n}',
+  },
+  {
     name: 'AgentPresetComposition',
     declaration: 'export interface AgentPresetComposition {\n    readonly id: string;\n    readonly name?: string;\n    readonly isDefault: boolean;\n    readonly broken?: string;\n    readonly rows: readonly AgentPresetCompositionRow[];\n}',
   },
@@ -4804,7 +4814,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'AgentPresetRow',
-    declaration: 'export interface AgentPresetRow {\n    readonly id: string;\n    readonly isDefault: boolean;\n    readonly name?: string;\n    readonly description?: string;\n    readonly broken?: string;\n}',
+    declaration: 'export interface AgentPresetRow {\n    readonly id: string;\n    readonly isDefault: boolean;\n    readonly name?: string;\n    readonly description?: string;\n    readonly broken?: string;\n    readonly compaction?: PresetCompactionState;\n}',
   },
   {
     name: 'AgentResolver',
@@ -5143,8 +5153,24 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface CompactionAgentContext {\n    session: Session;\n    options: {\n        provider?: string;\n        model?: string;\n    };\n}',
   },
   {
+    name: 'CompactionHostCapability',
+    declaration: 'export interface CompactionHostCapability {\n    readonly version: number;\n    readonly selected: CompactionRegistration | undefined;\n    register(owner: Context, registration: CompactionProviderRegistration): Promise<CompactionRegistration>;\n    bindingFor(ctx: Context): AgentPresetBinding | undefined;\n    retained(): readonly AgentPresetBinding[];\n}',
+  },
+  {
+    name: 'CompactionHostRequirement',
+    declaration: 'export interface CompactionHostRequirement {\n    readonly rowId?: string;\n    readonly module?: string;\n}',
+  },
+  {
     name: 'CompactionId',
     declaration: 'export type CompactionId = Branded<\'CompactionId\'>;',
+  },
+  {
+    name: 'CompactionProviderRegistration',
+    declaration: 'export interface CompactionProviderRegistration {\n    readonly origin: string;\n    readonly revision: string;\n    readonly module: string;\n    readonly presets: readonly string[];\n    readonly requires?: readonly CompactionHostRequirement[];\n}',
+  },
+  {
+    name: 'CompactionRegistration',
+    declaration: 'export interface CompactionRegistration {\n    readonly origin: string;\n    readonly revision: string;\n    readonly module: string;\n    readonly presets: readonly string[];\n    readonly requires: readonly CompactionHostRequirement[];\n    readonly ownerFiber: Fiber;\n    revoke(): Promise<void>;\n}',
   },
   {
     name: 'CompactionResult',
@@ -6509,6 +6535,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'PrepareSessionOptions',
     declaration: 'export type PrepareSessionOptions = (CreateSessionOptions & {\n    readonly eventState?: undefined;\n}) | RestoredSessionOptions;',
+  },
+  {
+    name: 'PresetCompactionState',
+    declaration: 'export interface PresetCompactionState {\n    readonly state: \'declared\' | \'substituted\' | \'skipped\';\n    readonly provider?: string;\n    readonly source?: \'declaration\' | \'registration\';\n    readonly presets?: readonly string[];\n    readonly reason?: string;\n    readonly revision?: number;\n}',
+  },
+  {
+    name: 'PresetDeclarationIdentity',
+    declaration: 'export interface PresetDeclarationIdentity {\n    readonly entryId?: string;\n    readonly patchId?: string;\n    readonly fiber?: Fiber;\n}',
   },
   {
     name: 'PresetDefinition',

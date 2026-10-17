@@ -14,10 +14,16 @@ import { afterAll, beforeAll, expect, it, onTestFinished, vi } from 'vitest'
 import {
   boot, composeEntries, initProfile, loadProfileDirectory, readProfilePatches, readProfileManifest,
   reconcileProfilePatches, OPTIONAL_BUNDLES, OFFICIAL_ON_DEMAND_CATALOG, PluginPackages, readPluginMeta, getDshRuntimeVersion,
-  type ProfileContext, type RuntimeResolution,
+  COMPOSITION_OWNER_GUARD_VERSION, provideCompositionOwnerGuard, applyProfileComposition, readProfilePatchLayers,
+  type CompositionOwnerGuard, type ProfileContext, type RuntimeResolution,
 } from '@deepseek-ai/dsh-app-boot'
 import PluginManager, { type Config, type PluginChange, type PluginInstallLogChunk, type PluginInstallProgress, type PluginInstallRequestId } from '../src/index.ts'
 import Hmr from '@deepseek-ai/dsh-hmr'
+import { createScope } from '@deepseek-ai/dsh-scope'
+import AgentPresets from '@deepseek-ai/dsh-agent-preset-registry'
+import AgentPreset from '@deepseek-ai/dsh-agent-preset'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
+import { pluginEntryId } from '@deepseek-ai/dsh-host-plugin-inventory'
 import Timer from '@deepseek-ai/cordis-plugin-timer'
 import type { PatchOptions } from '@deepseek-ai/cordis-plugin-include'
 import { Group } from '@deepseek-ai/cordis-plugin-loader'
@@ -32,7 +38,7 @@ let restoreGitCommandLineConfig: () => void
 beforeAll(() => { restoreGitCommandLineConfig = isolateGitCommandLineConfig() })
 afterAll(() => { restoreGitCommandLineConfig() })
 
-async function fixture(reload: 'live' | 'startup' = 'live', overlay = false, prepare?: (ctx: Context) => void, config: Config = {}, packageManager?: ProfileContext['packageManager'], prepareFiles?: (dir: string) => void, sourceInstallation = false) {
+async function fixture(reload: 'live' | 'startup' = 'live', overlay = false, prepare?: (ctx: Context, profile: ProfileContext) => Promise<void> | void, config: Config = {}, packageManager?: ProfileContext['packageManager'], prepareFiles?: (dir: string) => void, sourceInstallation = false) {
   const temporaryHome = mkdtempSync(join(tmpdir(), 'plugin-manager-'))
   let owner: Context | undefined
   onTestFinished(async () => { await owner?.fiber.dispose(); rmSync(temporaryHome, { recursive: true, force: true }) })
@@ -70,10 +76,10 @@ async function fixture(reload: 'live' | 'startup' = 'live', overlay = false, pre
     dir, patchPath: join(dir, 'cordis.patch.yml'), installAnchor: anchor, cwd: home, home,
     overlays, telemetryDisabledEnv: undefined,
   }
-  const ctx = await boot('test', join(dir, 'cordis.yml'), readProfilePatches('test', profile), (ctx) => {
+  const ctx = await boot('test', join(dir, 'cordis.yml'), readProfilePatches('test', profile), async (ctx) => {
     owner = ctx
     ctx.provide('appReady', { onReady: (listener: () => void) => { listener(); return () => {} } })
-    prepare?.(ctx)
+    await prepare?.(ctx, profile)
     ctx.provide('profileContext', profile)
     ctx.loader.builtins.manager = PluginManager
   })
@@ -2019,4 +2025,234 @@ it('refuses a repeated local link install without changing its dependency or sel
     .toMatchObject({ changed: false, application: 'failed', error: { code: 'update-required' } })
   expect(install).not.toHaveBeenCalled()
   expect(readProfileManifest('test', dir).dependencies?.extra).toBe('1.0.0')
+})
+
+/**
+ * Resolve the test's own bare modules to real implementations, delegating every
+ * other specifier to the Loader's original importer. The declaring plugin under
+ * test is the shipped one, loaded through this mapping, never a copy.
+ */
+function mapBareImports(ctx: Context, modules: ReadonlyMap<string, unknown>): void {
+  const internal = ctx.loader.internal
+  if (internal === undefined) throw new Error('the Loader exposes no internal importer')
+  const original = internal.import.bind(internal)
+  type Import = typeof internal.import
+  const override = (specifier: string, parentURL: string, attributes: Parameters<Import>[2]): Promise<unknown> => {
+    const module = modules.get(specifier)
+    return module === undefined ? original(specifier, parentURL, attributes) : Promise.resolve(module)
+  }
+  ctx.loader.internal = Object.assign(Object.create(internal) as typeof internal, { import: override as Import })
+}
+
+/** The profile files one management refusal must leave byte-identical. */
+function profileBytes(dir: string): string {
+  return ['package.json', 'cordis.patch.yml', 'cordis.yml'].map((file) => {
+    try { return `${file}:${readFileSync(join(dir, file), 'utf8')}` }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return `${file}:`
+      throw error
+    }
+  }).join('\u0000')
+}
+
+/** A guard that refuses changes naming `managed`, through the published Host contract. */
+function managedGuard(blocked: boolean): CompositionOwnerGuard {
+  return {
+    version: COMPOSITION_OWNER_GUARD_VERSION,
+    revision: 1,
+    exclusive: async (change, run) => {
+      const touched = change.unbounded === true
+        || change.rows.some(row => row.id === 'managed')
+        || change.modules.includes('extra')
+      if (!blocked || !touched) return { kind: 'applied', value: await run() }
+      return {
+        kind: 'blocked', operation: change.operation,
+        blocked: [{ agentPreset: 'standard', owner: 'managed', role: 'declaration' }],
+      }
+    },
+  }
+}
+
+it('routes plugin, bundle and package changes through the published guard before writing', async () => {
+  const { ctx, dir, manager } = await fixture('live', false, (host) => {
+    provideCompositionOwnerGuard(host, managedGuard(true))
+  })
+  const before = profileBytes(dir)
+  const beforeBundles = (await manager.listBundles()).map(item => item.name)
+  const beforeEntries = [...ctx.loader.entries()].map(entry => entry.id)
+  const plugin = (await manager.listPlugins()).find(row => row.patchId === 'managed')
+  if (plugin === undefined) throw new Error('the managed plugin row is missing')
+
+  const disabledPlugin = await manager.setPluginEnabled(plugin.entryId, false)
+  expect(disabledPlugin.application).toBe('failed')
+  expect(disabledPlugin.error?.diagnostic).toMatch(/needs a normal restart/u)
+  const disabledBundle = await manager.setBundleEnabled('extra', false)
+  expect(disabledBundle.application).toBe('failed')
+  const removed = await manager.removeBundle('extra')
+  expect(removed.application).toBe('failed')
+
+  expect(profileBytes(dir)).toBe(before)
+  expect((await manager.listBundles()).map(item => item.name)).toEqual(beforeBundles)
+  expect([...ctx.loader.entries()].map(entry => entry.id)).toEqual(beforeEntries)
+})
+
+it('still applies an unrelated change when no retained owner is affected', async () => {
+  const { dir, manager } = await fixture('live', false, (host) => {
+    provideCompositionOwnerGuard(host, managedGuard(false))
+  })
+  const before = profileBytes(dir)
+  const plugin = (await manager.listPlugins()).find(row => row.patchId === 'managed')
+  if (plugin === undefined) throw new Error('the managed plugin row is missing')
+
+  const disabled = await manager.setPluginEnabled(plugin.entryId, false)
+  expect(disabled.application).not.toBe('failed')
+  expect(profileBytes(dir)).not.toBe(before)
+})
+
+/**
+ * One real composed profile. The preset declaration comes from a bundle the
+ * installation itself carries, so the Loader mounts the real declaring plugin
+ * and the registry reads a trusted composition origin. A second row of the
+ * same bundle registers a provider through the Host capability, and an Agent
+ * stays bound to that revision while the formal PluginManager runs over the
+ * same profile. Only the package-manager network boundary is mocked.
+ */
+async function composedFixture(reload: 'live' | 'startup') {
+  const f = await fixture(reload, false, async (host, profile) => {
+    // The shipped declaring plugin is loaded for the row's bare module name;
+    // every other specifier keeps the Loader's own resolution.
+    mapBareImports(host, new Map([['@deepseek-ai/dsh-agent-preset', { default: AgentPreset }]]))
+    await host.plugin(SessionProjectionRegistry)
+    await host.plugin(AgentPresets, { default: 'standard' })
+    // The composition the applier is about to mount, recorded exactly as the
+    // launcher records it, so the declaring row carries a trusted origin.
+    applyProfileComposition(profile, readProfilePatchLayers('test', profile,
+      loadProfileDirectory('test', profile.dir, profile.installAnchor)))
+  }, {}, undefined, (dir) => {
+    const home = resolve(dir, '..', '..')
+    // The bundled provider the declaration asks for, inside its isolate realm.
+    const basic = join(dir, 'node_modules', '@deepseek-ai', 'dsh-compaction-basic')
+    mkdirSync(basic, { recursive: true })
+    writeFileSync(join(basic, 'package.json'), JSON.stringify({
+      name: '@deepseek-ai/dsh-compaction-basic', version: '1.0.0', exports: './index.mjs',
+    }))
+    writeFileSync(join(basic, 'index.mjs'), 'export function apply(ctx) { ctx.provide("testCompactionEngine", { provider: "basic" }) }\n')
+    // The provider the registration selects, resolvable from the composition base.
+    writeFileSync(join(dir, 'engine.mjs'), 'export function apply(ctx) { ctx.provide("testCompactionEngine", { provider: "engine" }) }\n')
+    // An installation-carried bundle: it resolves from the install anchor and
+    // the anchor declares it, which is what makes its layer trusted.
+    const bundle = join(home, 'node_modules', 'test-context-bundle')
+    mkdirSync(bundle, { recursive: true })
+    writeFileSync(join(bundle, 'package.json'), JSON.stringify({
+      name: 'test-context-bundle', version: '1.0.0', dsh: { bundle: { patch: './cordis.patch.yml' } },
+    }))
+    writeFileSync(join(bundle, 'cordis.patch.yml'), JSON.stringify([{ insert: [
+      { id: 'preset-standard', name: '@deepseek-ai/dsh-agent-preset', config: {
+        id: 'standard',
+        plugins: [{
+          id: 'compaction', name: 'cordis:group', group: true, isolate: { testCompactionEngine: true },
+          config: [{ id: 'compaction-basic', name: '@deepseek-ai/dsh-compaction-basic' }],
+        }],
+      } },
+      { id: 'context-owner', name: './owner.mjs' },
+    ] }]))
+    writeFileSync(join(bundle, 'owner.mjs'), [
+      'export async function apply(ctx) {',
+      "  await ctx.inject(['agentPresets'], async (child) => {",
+      '    await child.agentPresets.compactionHost.register(child, {',
+      "      origin: 'test-context', revision: 'r1',",
+      "      module: './engine.mjs', presets: ['standard'],",
+      '    })',
+      '  })',
+      '}',
+      '',
+    ].join('\n'))
+    writeFileSync(join(home, 'package.json'), JSON.stringify({
+      name: 'installation', dependencies: { 'test-context-bundle': '1.0.0' },
+    }))
+    const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as {
+      dependencies?: Record<string, string>
+      dsh?: { profile?: { bundles?: string[] } }
+    }
+    manifest.dsh = { ...manifest.dsh, profile: { ...manifest.dsh?.profile, bundles: ['core', 'extra', 'test-context-bundle'] } }
+    writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest))
+  })
+  const agent = createScope(f.ctx, {})
+  await f.ctx.agentPresets.mount(agent.ctx, 'standard')
+  const binding = f.ctx.agentPresets.compactionHost.bindingFor(agent.ctx)
+  const ownerEntry = [...f.ctx.loader.entries()].find(entry => entry.options.id === 'context-owner')
+  if (ownerEntry === undefined) throw new Error('the registering row did not mount')
+  return { ...f, agent, binding, ownerEntryId: pluginEntryId(ownerEntry.id) }
+}
+
+it('refuses a real owner\u2019s plugin, bundle and package changes before writing', async () => {
+  const f = await composedFixture('live')
+  try {
+    expect(f.binding?.compactionSource).toBe('registration')
+    expect(f.binding?.registrationOrigin).toBe('test-context')
+    expect(f.binding?.ownerAlive).toBe(true)
+    expect(f.binding?.available).toBe(true)
+    expect([...f.ctx.loader.entries()].some(entry => entry.id === f.ownerEntryId)).toBe(true)
+
+    const before = profileBytes(f.dir)
+    const beforeFibers = new Map([...f.ctx.loader.entries()].map(entry => [entry.id, entry.fiber]))
+    const beforeBundles = (await f.manager.listBundles()).map(item => item.name)
+    const beforePlugins = (await f.manager.listPlugins()).map(row => row.entryId)
+
+    const disabled = await f.manager.setPluginEnabled(f.ownerEntryId, false)
+    expect(disabled.application).toBe('failed')
+    expect(disabled.error?.diagnostic).toMatch(/needs a normal restart/u)
+    expect(profileBytes(f.dir)).toBe(before)
+    expect([...f.ctx.loader.entries()].map(entry => entry.id)).toEqual([...beforeFibers.keys()])
+    for (const [id, fiber] of beforeFibers) {
+      expect([...f.ctx.loader.entries()].find(entry => entry.id === id)?.fiber).toBe(fiber)
+    }
+    expect((await f.manager.listPlugins()).map(row => row.entryId)).toEqual(beforePlugins)
+    // The substituted provider publishes inside the revision's isolate realm,
+    // so it is read through the registry's own binding readback rather than the
+    // root context, and compared by identity with what the candidate mounted.
+    expect(f.ctx.agentPresets.serviceFor({ ctx: f.agent.ctx }, 'testCompactionEngine'))
+      .toEqual({ provider: 'engine' })
+    expect(f.binding?.compactionProvider).toBe('./engine.mjs')
+
+    const bundle = await f.manager.setBundleEnabled('test-context-bundle', false)
+    expect(bundle.application).toBe('failed')
+    expect(profileBytes(f.dir)).toBe(before)
+    expect((await f.manager.listBundles()).map(item => item.name)).toEqual(beforeBundles)
+
+    const removed = await f.manager.removeBundle('test-context-bundle')
+    expect(removed.application).toBe('failed')
+    expect(profileBytes(f.dir)).toBe(before)
+    expect((await f.manager.listBundles()).map(item => item.name)).toEqual(beforeBundles)
+    expect(f.ctx.get('managedProbe')).toBe(true)
+  } finally {
+    await f.agent.dispose()
+  }
+})
+
+it('refuses the same owner changes without HMR, before any save', async () => {
+  const f = await composedFixture('startup')
+  try {
+    const before = profileBytes(f.dir)
+    const unrelated = (await f.manager.listPlugins()).find(row => row.patchId === 'managed')
+    if (unrelated === undefined) throw new Error('the unrelated plugin row is missing')
+
+    // A change that touches no retained owner still goes through and is saved.
+    const applied = await f.manager.setPluginEnabled(unrelated.entryId, false)
+    expect(applied.application).not.toBe('failed')
+    expect(profileBytes(f.dir)).not.toBe(before)
+
+    const afterUnrelated = profileBytes(f.dir)
+    const fibers = new Map([...f.ctx.loader.entries()].map(entry => [entry.id, entry.fiber]))
+    const blocked = await f.manager.setPluginEnabled(f.ownerEntryId, false)
+    expect(blocked.application).toBe('failed')
+    expect(blocked.error?.diagnostic).toMatch(/needs a normal restart/u)
+    expect(profileBytes(f.dir)).toBe(afterUnrelated)
+    expect([...f.ctx.loader.entries()].map(entry => entry.id)).toEqual([...fibers.keys()])
+    for (const [id, fiber] of fibers) {
+      expect([...f.ctx.loader.entries()].find(entry => entry.id === id)?.fiber).toBe(fiber)
+    }
+  } finally {
+    await f.agent.dispose()
+  }
 })

@@ -493,9 +493,10 @@ Registry of YAML-declared presets and the revisions live Agents retain.
 ```ts cordis-catalog
 /** Register and eagerly load a definition; activation failure remains visible in the roster.
  * @param definition Parsed configuration supplied by the declaring plugin.
+ * @param identity Real Loader identity of the declaring row, when it has one.
  * @returns Definition disposer after activation or its diagnostic settles; the declaring plugin owns it.
  */
-async register(definition: PresetDefinition): Promise<() => Promise<void>>
+async register(definition: PresetDefinition, identity: PresetDeclarationIdentity = {}): Promise<() => Promise<void>>
 
 /** Inspect retained revisions, or the exact revision an Agent joined.
  * @param ctx - optional Agent context; omission includes all retained revisions.
@@ -533,9 +534,14 @@ async resolve(id?: string): Promise<AgentPreset>
 async mount(ctx: Context, id?: string): Promise<AgentPreset>
 
 /** Join a child to the exact revision retained by its parent.
+ *
+ * This path is synchronous, so it cannot queue behind a composition change
+ * that holds the parent's revision: it refuses instead of joining a
+ * revision the change is about to remove or restart.
  * @param ctx Child Agent context.
  * @param parent Parent Agent context.
  * @returns Inherited preset id, or undefined in a preset-free composition.
+ * @throws when the parent's revision is held by a composition change.
  */
 composeFrom(ctx: Context, parent: Context): string | undefined
 

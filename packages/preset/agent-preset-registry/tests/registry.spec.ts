@@ -17,6 +17,14 @@ const contexts: Context[] = []
 afterEach(async () => { for (const ctx of contexts.splice(0)) await ctx.fiber.dispose() })
 async function setup() { const ctx = await harness(); contexts.push(ctx); return ctx }
 
+/** Start one plugin and return its own context: `ctx.plugin()` resolves to the fiber, not a Context. */
+async function ownerContext(ctx: Context): Promise<Context> {
+  let owner: Context | undefined
+  await ctx.plugin({ apply: (child: Context) => { owner = child } })
+  if (owner === undefined) throw new Error('the plugin context was not created')
+  return owner
+}
+
 function writePlugin(root: string, packageName: string, subpath?: string): void {
   const parts = packageName.split('/')
   const packageDir = join(root, 'node_modules', ...parts)
@@ -38,7 +46,7 @@ function writePlugin(root: string, packageName: string, subpath?: string): void 
 }
 
 describe('declarative preset revisions', () => {
-  it('replaces the automatic provider at activation and keeps command, reducer and group order', async () => {
+  it('keeps the declared composition when no trusted layer vouches for the selection', async () => {
     const ctx = await setup()
     const root = mkdtempSync(join(tmpdir(), 'dsh-preset-provider-'))
     const activationEvents: string[] = []
@@ -63,15 +71,26 @@ describe('declarative preset revisions', () => {
         }],
       })
       const [composition] = await ctx.agentPresets.compositionInventory()
+      const resolution = await ctx.agentPresets.resolve('standard')
       expect(composition?.broken).toBeUndefined()
+      // The declaration's own rows stay the composition, in their declared order.
       expect(composition?.rows.map(row => row.moduleName)).toEqual([
-        `${contextProvider}/engine`, '@deepseek-ai/dsh-command-compact', '@deepseek-ai/dsh-compaction-tool-result-pruner',
+        '@deepseek-ai/dsh-compaction-basic', '@deepseek-ai/dsh-command-compact', '@deepseek-ai/dsh-compaction-tool-result-pruner',
       ])
       expect(activationEvents).toEqual([
-        `${contextProvider}/engine`, '@deepseek-ai/dsh-command-compact', '@deepseek-ai/dsh-compaction-tool-result-pruner',
+        '@deepseek-ai/dsh-compaction-basic', '@deepseek-ai/dsh-command-compact', '@deepseek-ai/dsh-compaction-tool-result-pruner',
       ])
-      expect(ctx.agentPresets.inspectCompositions()[0]?.modules.map(row => row.moduleName))
-        .toEqual(composition?.rows.map(row => row.moduleName))
+      expect(resolution.compaction).toEqual({
+        state: 'skipped', reason: 'no trusted in-box layer vouches for this declaration',
+      })
+      // A registration cannot open the unvouched path either.
+      const owner = await ownerContext(ctx)
+      await ctx.agentPresets.compactionHost.register(owner, {
+        origin: 'test-context', revision: 'r1', module: `${contextProvider}/engine`, presets: ['standard'],
+      })
+      const afterRegistration = await ctx.agentPresets.resolve('standard')
+      expect(afterRegistration.compaction?.state).toBe('skipped')
+      expect(activationEvents.filter(name => name === `${contextProvider}/engine`)).toEqual([])
     } finally { delete runtime.__dshPresetActivationEvents; rmSync(root, { recursive: true, force: true }) }
   })
 
@@ -93,16 +112,22 @@ describe('declarative preset revisions', () => {
   })
 
   it.each([
-    ['missing', [{ name: '@deepseek-ai/dsh-command-compact' }], /expected exactly one.*found 0/u],
+    // Each declaration names modules whose own Host dependencies are absent
+    // here, so it stays pending and says exactly what it waits for. The
+    // unvouched provider selection is skipped on top of that; a declaration
+    // with missing dependencies is never reported healthy.
+    ['missing', [{ name: '@deepseek-ai/dsh-command-compact' }], /waiting for commands, compaction/u],
     ['duplicate', [
       { name: '@deepseek-ai/dsh-compaction-basic' },
       { name: '@deepseek-ai/dsh-compaction-basic' },
-    ], /expected exactly one.*found 2/u],
+    ], /waiting for tokenMeter/u],
+    // This declaration names a module this Loader cannot resolve, so the row
+    // never starts and the declaration cannot compose at all.
     ['competing', [
       { name: '@deepseek-ai/dsh-compaction-basic' },
       { name: '@example/compaction-provider' },
-    ], /competing compaction provider/u],
-  ] as const)('refuses %s automatic provider rows at activation', async (kind, rows, expected) => {
+    ], /@example\/compaction-provider\): never started/u],
+  ] as const)('reports %s provider declarations through their real diagnostics', async (kind, rows, diagnostic) => {
     const ctx = await setup()
     await declare(ctx, {
       id: `invalid-provider-${kind}`,
@@ -110,9 +135,13 @@ describe('declarative preset revisions', () => {
       plugins: [{ name: 'cordis:group', group: true, config: rows }],
     })
     const resolution = await ctx.agentPresets.resolve(`invalid-provider-${kind}`)
-    expect(resolution.broken).toBeDefined()
-    expect(resolution.broken ?? '').toMatch(expected)
-    expect(ctx.agentPresets.inspectCompositions()).toEqual([])
+    // The original dependency gap is reported verbatim; no fixture is excused
+    // as healthy, and the enhancement is still never authorized.
+    expect(resolution.broken ?? '').toMatch(diagnostic)
+    // A declaration that cannot compose reports no enhancement state at all;
+    // the other cases keep their structured skip.
+    if (kind === 'competing') expect(resolution.compaction?.state).toBe('declared')
+    else expect(resolution.compaction?.state).toBe('skipped')
   })
 
   it('eagerly scopes tool and prompt registrations and shares one revision across Agents', async () => {
@@ -185,7 +214,7 @@ describe('declarative preset revisions', () => {
     const ctx = await setup()
     await declare(ctx, contribution('standard'))
     await expect(declare(ctx, contribution('standard'))).rejects.toThrow('Duplicate agent preset')
-    expect(await ctx.agentPresets.resolve()).toEqual({ id: 'standard' })
+    expect(await ctx.agentPresets.resolve()).toEqual({ id: 'standard', compaction: { state: 'declared' } })
   })
 
   it('rebinds a blank scope and preserves a child inheriting its former revision', async () => {
@@ -302,7 +331,7 @@ it('waits for a Host provider still activating instead of recording the preset a
   release()
   await hostUpdate
   const lease = await acquiring
-  expect(await ctx.agentPresets.resolve('late')).toEqual({ id: 'late' })
+  expect(await ctx.agentPresets.resolve('late')).toEqual({ id: 'late', compaction: { state: 'declared' } })
   expect((await ctx.agentPresets.compositionInventory())[0]).toMatchObject({ id: 'late',
     rows: [expect.objectContaining({ moduleName: plugin('needs-missing'), enabled: true })] })
   await lease[Symbol.asyncDispose]()
@@ -428,7 +457,7 @@ it('does not bind a definition removed while acquisition yields, and disposal is
   await rejection
   await declare(ctx, contribution('standard'))
   await dispose()
-  expect(await ctx.agentPresets.resolve()).toEqual({ id: 'standard' })
+  expect(await ctx.agentPresets.resolve()).toEqual({ id: 'standard', compaction: { state: 'declared' } })
 })
 
 it('refuses to inherit a revision owned by a different registry', async () => {

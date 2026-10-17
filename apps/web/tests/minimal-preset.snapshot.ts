@@ -8,7 +8,7 @@ import type { AgentHandle } from '@deepseek-ai/dsh-agent'
 import { ToolCallId, createUserMessage } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type { Session } from '@deepseek-ai/dsh-session'
-import type {} from '@deepseek-ai/dsh-agent-preset-registry'
+import { COMPACTION_HOST_VERSION } from '@deepseek-ai/dsh-agent-preset-registry'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 import {
   assertFixtureInventory,
@@ -182,6 +182,35 @@ describe('minimal agent preset', () => {
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
   }, 60_000)
+
+  it('reports the declared compaction source and binds each Agent to its own preset revision', async () => {
+    const host = scaffold.ctx.agentPresets.compactionHost
+    expect(host.version).toBe(COMPACTION_HOST_VERSION)
+    // This runtime registers no provider, so the declared rows are what runs.
+    expect(host.selected).toBeUndefined()
+    const roster = await scaffold.ctx.agentPresets.remoteExportList()
+    const standard = roster.presets.find(row => row.id === 'standard')
+    const minimal = roster.presets.find(row => row.id === 'minimal')
+    expect(standard?.compaction).toEqual({ state: 'declared' })
+    expect(minimal?.compaction).toEqual({ state: 'declared' })
+    // The declaration still carries the bundled provider row it ships with.
+    const declared = await scaffold.ctx.agentPresets.readDocument('standard')
+    expect(declared.content).toContain('@deepseek-ai/dsh-compaction-basic')
+    // The live Agent bound the preset it asked for, not the deployment default,
+    // and its binding reports the same source the roster reports.
+    const binding = host.bindingFor(agentHandle.agent.ctx)
+    expect(binding).toMatchObject({
+      agentPreset: 'minimal',
+      compactionSource: 'declaration',
+      ownerAlive: true,
+    })
+    expect(binding?.compactionProvider).toBeUndefined()
+    // The binding names the revision this Agent's own preset published.
+    const retained = host.retained().filter(row => row.agentPreset === 'minimal')
+    expect(retained).toHaveLength(1)
+    expect(binding?.generation).toBe(retained[0]?.generation)
+    expect(scaffold.ctx.agentPresets.serviceFor(agentHandle.agent, 'compaction')).toBeUndefined()
+  })
 
   it('keeps its snapshot inventory closed', async () => {
     await assertFixtureInventory(SNAPSHOT_DIR, [

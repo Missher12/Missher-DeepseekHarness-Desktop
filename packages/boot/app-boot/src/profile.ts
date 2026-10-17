@@ -74,6 +74,56 @@ export function bundlePatchPaths(packageDir: string, bundle: DshBundleManifest):
   return bundlePatchFiles(bundle).map(file => join(packageDir, file))
 }
 
+/** Where one profile layer's patches came from, and what vouches for them. */
+export interface ProfileLayerOrigin {
+  /** Layer family: a bundle's patch files, the profile's own patch, the home patch, or a launcher overlay. */
+  readonly kind: 'bundle' | 'profile' | 'home' | 'overlay'
+  /** Short label naming the layer in diagnostics. */
+  readonly label: string
+  /**
+   * Whether this layer may select a preset declaration's compaction
+   * enhancement: only a bundle layer resolved from the running installation
+   * qualifies, and only while its recorded package identity still matches
+   * what that installation resolves.
+   */
+  readonly trusted: boolean
+  /** Absolute `package.json` of the running installation this layer was resolved against. */
+  readonly installAnchor: string
+  /** Bundle package name, as listed in `dsh.profile.bundles`. */
+  readonly packageName?: string
+  /** Absolute directory of the resolved bundle package. */
+  readonly packageDir?: string
+  /** Resolved bundle package version. */
+  readonly version?: string
+  /** Whether the bundle resolved from the installation anchor rather than the profile directory. */
+  readonly fromInstallation?: boolean
+  /** Whether the recorded bundle identity no longer matches what the installation resolves. */
+  readonly stale?: boolean
+}
+
+/**
+ * Whether one preset declaration row may carry the versioned compaction
+ * enhancement, decided from the layers before they were flattened.
+ */
+export interface PresetEnhancementOrigin {
+  /** Whether a trusted in-box layer selected this declaration's compaction provider. */
+  readonly trusted: boolean
+  /** Why the declaration may not be enhanced; absent when trusted. */
+  readonly reason?: string
+  /** Composition revision the decision was read at. */
+  readonly revision: number
+}
+
+/** One ordered composition input with the origin that vouches for it. */
+export interface ProfilePatchLayer {
+  /** Where this layer's patches came from. */
+  readonly origin: ProfileLayerOrigin
+  /** The layer's parsed patches, in application order. */
+  readonly patches: PatchOptions[]
+  /** Composition revision the layer was read at. */
+  readonly revision: number
+}
+
 /** One resolved bundle layer of a profile. */
 export interface ProfileLayer {
   /** The bundle's package name, as listed in `dsh.profile.bundles`. */
@@ -84,6 +134,8 @@ export interface ProfileLayer {
   patchPaths: readonly string[]
   /** The parsed patch lists of every file, concatenated in application order. */
   patches: PatchOptions[]
+  /** Where this layer came from and whether the installation vouches for it. */
+  origin: ProfileLayerOrigin
 }
 
 /** A loaded profile: resolved bundle layers plus the user's own patch layer. */
@@ -698,29 +750,114 @@ function packageDirFromAnchor(anchor: string, packageName: string): string | und
   return undefined
 }
 
+/** One bundle package resolved through the two-anchor order. */
+export interface BundleResolution {
+  /** Absolute directory of the resolved bundle package. */
+  readonly packageDir: string
+  /** Whether the installation anchor supplied this package rather than the profile directory. */
+  readonly fromInstallation: boolean
+  /** Whether the installation's own manifest declares this package as a dependency or peer. */
+  readonly declaredByInstallation: boolean
+}
+
 /**
- * Resolve one bundle package's directory: installation anchor first, then the
- * profile directory. The installation-first order is the contract that
- * `@deepseek-ai/dsh-base` (and every other in-box bundle) always comes from
- * the same installation as the running dsh, never from a profile-local copy.
- * Resolution does not require the package to export `./package.json`.
+ * Whether the running installation declares one package as its own
+ * dependency or peer. Only a declared package is one the installation
+ * actually carries; a same-named package some ancestor `node_modules`
+ * happens to expose is not.
+ * @param installAnchor - absolute `package.json` of the running installation.
+ * @param packageName - the package name to look for.
+ * @returns true when the installation manifest declares it.
+ */
+function installationDeclares(installAnchor: string, packageName: string): boolean {
+  try {
+    const manifest = readPackageManifest(installAnchor)
+    return Object.hasOwn(manifest.dependencies ?? {}, packageName)
+      || Object.hasOwn(manifest.peerDependencies ?? {}, packageName)
+  } catch (_error) {
+    // An unreadable installation manifest vouches for nothing.
+    return false
+  }
+}
+
+/** The real directory of a path, falling back to its resolved spelling when it does not exist. */
+function realDirectory(path: string): string {
+  try {
+    return realpathSync.native(path)
+  } catch (_error) {
+    // A path that cannot be resolved cannot be compared through links.
+    return resolve(path)
+  }
+}
+
+/**
+ * Resolve one bundle package's directory and which anchor supplied it:
+ * installation anchor first, then the profile directory. The
+ * installation-first order is the contract that `@deepseek-ai/dsh-base` (and
+ * every other in-box bundle) always comes from the same installation as the
+ * running dsh, never from a profile-local copy. Resolution does not require
+ * the package to export `./package.json`.
  * @param binName - the diagnostic prefix on the thrown error.
  * @param packageName - the bundle's package name from `dsh.profile.bundles`.
  * @param installAnchor - absolute path of a file inside the dsh app package (its package.json).
  * @param profileDir - the profile directory (second anchor).
- * @returns the bundle package's absolute directory.
+ * @returns the bundle package's absolute directory, its anchor, and whether the installation declares it.
+ * @throws {Error} when neither anchor resolves the package.
  */
-export function resolveBundleDir(
+export function resolveBundleOrigin(
   binName: string, packageName: string, installAnchor: string, profileDir: string,
-): string {
-  for (const anchor of [installAnchor, join(profileDir, 'package.json')]) {
+): BundleResolution {
+  const declaredByInstallation = installationDeclares(installAnchor, packageName)
+  for (const [anchor, fromInstallation] of [[installAnchor, true], [join(profileDir, 'package.json'), false]] as const) {
     const dir = packageDirFromAnchor(anchor, packageName)
-    if (dir !== undefined) return dir
+    if (dir !== undefined) return { packageDir: dir, fromInstallation, declaredByInstallation }
   }
   throw new Error(
     `${binName}: cannot resolve profile bundle ${JSON.stringify(packageName)} from the dsh installation or ${profileDir}; `
     + `run 'dsh plugin --profile ${basename(profileDir)} install' if its dependency is not installed`,
   )
+}
+
+/**
+ * Resolve one bundle package's directory through the installation-first order.
+ * @param binName - the diagnostic prefix on the thrown error.
+ * @param packageName - the bundle's package name from `dsh.profile.bundles`.
+ * @param installAnchor - absolute path of a file inside the dsh app package (its package.json).
+ * @param profileDir - the profile directory (second anchor).
+ * @returns the bundle package's absolute directory.
+ * @throws {Error} when neither anchor resolves the package.
+ */
+export function resolveBundleDir(
+  binName: string, packageName: string, installAnchor: string, profileDir: string,
+): string {
+  return resolveBundleOrigin(binName, packageName, installAnchor, profileDir).packageDir
+}
+
+/**
+ * Whether a previously loaded bundle layer is still one the running
+ * installation vouches for: its package must be declared by the installation,
+ * resolve under the installation anchor to the same real directory, and carry
+ * the same version. A layer whose package moved, lost its version, or is no
+ * longer the installation's own was read from code this process is not
+ * running, so nothing vouches for it any more.
+ * @param layer - the previously loaded bundle layer.
+ * @param installAnchor - absolute `package.json` of the running installation.
+ * @returns true when the recorded identity no longer matches the installation.
+ */
+export function bundleLayerStale(layer: ProfileLayer, installAnchor: string): boolean {
+  const { packageName, packageDir, origin } = layer
+  if (!origin.fromInstallation || !origin.trusted) return true
+  if (origin.version === undefined || origin.version === '') return true
+  if (!installationDeclares(installAnchor, packageName)) return true
+  const dir = packageDirFromAnchor(installAnchor, packageName)
+  if (dir === undefined) return true
+  if (realDirectory(dir) !== realDirectory(packageDir)) return true
+  try {
+    return readProfileManifest('dsh', dir).version !== origin.version
+  } catch (_error) {
+    // A package manifest this process cannot read cannot confirm the recorded identity.
+    return true
+  }
 }
 
 /**
@@ -749,7 +886,8 @@ export function loadProfileDirectory(
   const exemptions = bundles.length === 0 ? {} : readProfileVersionExemptions(dir)
   for (const packageName of bundles) {
     try {
-      const packageDir = resolveBundleDir(binName, packageName, installAnchor, dir)
+      const resolution = resolveBundleOrigin(binName, packageName, installAnchor, dir)
+      const { packageDir } = resolution
       const bundleManifest = readProfileManifest(binName, packageDir)
       const bundle = bundleManifest.dsh?.bundle
       if (bundle === undefined) {
@@ -760,7 +898,20 @@ export function loadProfileDirectory(
       if (issue !== undefined && !issue.exempted) throw new Error(pluginCompatibilityWarning(issue))
       const patchPaths = bundlePatchPaths(packageDir, bundle)
       const patches = patchPaths.flatMap(patchPath => loadOverlayPatches(binName, patchPath))
-      layers.push({ packageName, packageDir, patchPaths, patches })
+      // Only a bundle the installation itself declares, resolves, and versions
+      // vouches for the layers it contributes; an unknown or unversioned
+      // package still loads, but cannot authorize an enhancement.
+      const trusted = resolution.fromInstallation && resolution.declaredByInstallation
+        && bundleManifest.version !== undefined && bundleManifest.version !== ''
+      layers.push({
+        packageName, packageDir, patchPaths, patches,
+        origin: {
+          kind: 'bundle', label: packageName, trusted,
+          installAnchor, packageName, packageDir,
+          ...(bundleManifest.version === undefined ? {} : { version: bundleManifest.version }),
+          fromInstallation: resolution.fromInstallation,
+        },
+      })
     } catch (error) {
       skippedBundles.push({ packageName, reason: String(error) })
     }
