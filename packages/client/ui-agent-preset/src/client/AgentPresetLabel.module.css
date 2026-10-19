@@ -2,7 +2,7 @@
 
 .label {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 4px;
   max-width: 180px;
   padding: 0 2px 0 0;
@@ -10,11 +10,13 @@
   border-radius: var(--dsw-radius-xs);
   background: var(--dsw-alias-fill-tsp-secondary);
   font-size: 12px;
-  line-height: 22px;
+  line-height: var(--dsw-font-xxs-12-line-height);
   color: var(--dsw-alias-label-tertiary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* Match the optical center of the adjacent compact header actions. */
+  transform: translateY(1px);
 }
 
 .icon {

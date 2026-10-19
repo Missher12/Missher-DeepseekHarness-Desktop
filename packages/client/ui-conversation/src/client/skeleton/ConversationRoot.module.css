@@ -83,7 +83,7 @@
 .titleCluster {
   display: flex;
   flex: 1;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   min-width: 0;
 }
@@ -154,10 +154,10 @@ button.crumb:hover {
 }
 
 .headerActions {
-  --dsh-conversation-header-label-align: baseline;
+  --dsh-conversation-header-label-align: center;
   display: flex;
   flex: none;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
 }
 

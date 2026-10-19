@@ -1,4 +1,6 @@
 .root {
+  display: inline-flex;
+  align-items: center;
   position: relative;
 }
 
@@ -13,11 +15,14 @@
   background: transparent;
   color: var(--dsw-alias-label-tertiary);
   font-size: 12px;
+  line-height: var(--dsw-font-xxs-12-line-height);
   cursor: pointer;
 }
 
 .triggerLabel {
-  align-self: baseline;
+  align-self: center;
+  /* Balance the compact label's glyphs against the centered icon. */
+  transform: translateY(1px);
 }
 
 .trigger:hover,
