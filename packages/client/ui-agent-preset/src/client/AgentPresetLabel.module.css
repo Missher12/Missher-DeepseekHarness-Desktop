@@ -15,14 +15,24 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* Match the optical center of the adjacent compact header actions. */
-  transform: translateY(1px);
 }
 
 .icon {
   align-self: center;
   flex: none;
   opacity: 0.7;
+}
+
+.text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Balance the artwork without moving the label's shared alignment box. */
+.icon,
+.text {
+  transform: translateY(1px);
 }
 
 /* First sacrifice when the title row (the enclosing inline-size container)
