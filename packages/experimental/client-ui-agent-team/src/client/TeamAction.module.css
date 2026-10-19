@@ -16,6 +16,10 @@
   cursor: pointer;
 }
 
+.triggerLabel {
+  align-self: baseline;
+}
+
 .trigger:hover,
 .trigger:focus-visible {
   color: var(--dsw-alias-label-primary);
@@ -25,6 +29,10 @@
    trigger keeps only its icon. TeamAction reads the collapsed state off this
    rule to switch from hover-open to click-only. */
 @container (max-width: 480px) {
+  .root {
+    align-self: center;
+  }
+
   .triggerLabel {
     display: none;
   }
