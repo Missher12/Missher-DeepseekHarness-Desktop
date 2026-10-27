@@ -32,7 +32,6 @@ fi
 launchctl bootout "$DOMAIN/$LABEL" 2>/dev/null || true
 launchctl bootstrap "$DOMAIN" "$AGENT"
 launchctl enable "$DOMAIN/$LABEL"
-launchctl kickstart -k "$DOMAIN/$LABEL"
 
 cat <<EOF
 Installed $LABEL
