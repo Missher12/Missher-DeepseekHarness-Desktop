@@ -51,7 +51,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           persist-credentials: false
@@ -211,7 +211,7 @@ jobs:
       # file-level sparse pattern would drop.
       - name: Ops - checkout pinned tooling
         if: ${{ inputs.run-ops-profile }}
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@v7
         with:
           repository: Missher12/Missher-DSH-Project-Ops
           ref: 97927a76a5ac5cc002987d608851a0e748c544dc
