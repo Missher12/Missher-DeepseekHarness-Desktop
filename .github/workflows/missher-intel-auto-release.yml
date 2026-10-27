@@ -1,0 +1,71 @@
+name: Missher Intel Mac auto release
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Community branch to merge the upstream tag into
+        required: false
+        type: string
+        default: codex/desktop-rc2-20261017
+
+permissions:
+  contents: write
+
+concurrency:
+  group: missher-intel-auto-release
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    runs-on: ubuntu-24.04
+    outputs:
+      build_version: ${{ steps.resolve.outputs.build_version }}
+      upstream_version: ${{ steps.resolve.outputs.upstream_version }}
+      should_build: ${{ steps.resolve.outputs.should_build }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Resolve latest upstream release
+        id: resolve
+        run: |
+          set -euo pipefail
+          latest_tag="$(gh release list -R deepseek-ai/deepseek-harness --limit 100 \
+            --json tagName,isDraft,publishedAt \
+            -q '[.[] | select(.isDraft == false) | select(.tagName | startswith("dsh-v"))] | sort_by(.publishedAt) | last | .tagName')"
+          if [ -z "$latest_tag" ]; then
+            echo "no upstream dsh-v* release found" >&2
+            exit 1
+          fi
+          upstream="${latest_tag#dsh-v}"
+          if ! printf '%s' "$upstream" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "invalid upstream version: $upstream" >&2
+            exit 1
+          fi
+          if printf '%s' "$upstream" | grep -q -- '-'; then
+            build_version="${upstream}.$(date -u +%Y%m%d).1"
+          else
+            build_version="$upstream"
+          fi
+          existing="$(gh release list -R "$GITHUB_REPOSITORY" --limit 100 --json tagName -q '.[].tagName' || true)"
+          prefix="desktop-v${upstream//./\\.}"
+          if printf '%s\n' "$existing" | grep -Eq "^${prefix}($|\\.)"; then
+            echo "desktop release for $upstream already exists; skipping"
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          fi
+          printf 'upstream_version=%s\nbuild_version=%s\n' "$upstream" "$build_version" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: resolve
+    if: needs.resolve.outputs.should_build == 'true'
+    uses: ./.github/workflows/missher-macos-intel-desktop.yml
+    with:
+      build_version: ${{ needs.resolve.outputs.build_version }}
+      upstream_version: ${{ needs.resolve.outputs.upstream_version }}
+      source_ref: ${{ inputs.source_ref || 'codex/desktop-rc2-20261017' }}
+      publish: true
