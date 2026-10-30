@@ -4,7 +4,7 @@
 
 [仓库首页](../README.zh.md) · [安装](../docs/cookbook/install-cordis-plugins.zh.md) · [开发](../docs/cookbook/build-cordis-plugins.zh.md)
 
-这里集中当前的 Missher 项目：八个公开 DSH 插件、公开的独立 Obsidian Memory，以及私有 Media。点击每个项目名称即可进入对应仓库。公开 DSH 插件各自构建、打包、保存设置和安装，无需额外搭配共同的兼容插件。模型行内设置、图片上传与输入框引用还使用下文列出的桌面端功能。
+这里集中当前的 Missher 项目：九个公开 DSH 插件、公开的独立 Obsidian Memory，以及私有 Media。点击每个项目名称即可进入对应仓库。公开 DSH 插件各自构建、打包、保存设置和安装，无需额外搭配共同的兼容插件。模型行内设置、图片上传与输入框引用还使用下文列出的桌面端功能。
 
 <a id="public-plugins"></a>
 
@@ -12,22 +12,35 @@
 
 | 插件 | 可以做什么 | DSH 内入口 | 快捷链接 |
 | --- | --- | --- | --- |
-| [上下文管理](https://github.com/Missher12/Missher-DSH-Context-Manager) | 请求前压缩、当前上下文、正文、逐次变化、本会话累计 | 会话 → 上下文；设置 → 上下文管理 | [最新正式版](https://github.com/Missher12/Missher-DSH-Context-Manager/releases/latest) · [合集快照](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
+| [上下文管理](https://github.com/Missher12/Missher-DSH-Context-Manager) | 当前上下文、用量、摘要来源，以及请求前与空闲压缩 | 会话 → 上下文；设置 → 上下文管理 | [最新正式版](https://github.com/Missher12/Missher-DSH-Context-Manager/releases/latest) · [合集快照](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
 | [使用统计](https://github.com/Missher12/Missher-DSH-Usage-Statistics) | 跨会话用量、活动图、模型/工具/技能排行 | 设置 → 使用统计 | [最新正式版](https://github.com/Missher12/Missher-DSH-Usage-Statistics/releases/latest) · [合集快照](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
 | [输出外观](https://github.com/Missher12/Missher-DSH-Output-Renderer) | 四种单栏布局、完整思考、工具详情及流式动效 | 设置 → 输出外观 | [最新正式版](https://github.com/Missher12/Missher-DSH-Output-Renderer/releases/latest) · [合集快照](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
 | [会话桥接](https://github.com/Missher12/Missher-DSH-Session-Bridge) | 会话 ID、跨会话投递、临时工作区及归档会话删除 | 侧栏会话菜单；新会话 → 工作区选择器 | [最新正式版](https://github.com/Missher12/Missher-DSH-Session-Bridge/releases/latest) · [合集快照](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
 | [思考强度](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) | 思考滑块、配色及每个模型的档位设置 | 模型设置；思考控制 | [最新正式版](https://github.com/Missher12/Missher-DSH-Reasoning-Effort/releases/latest) · [合集快照](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
 | [Project Ops 项目任务](https://github.com/Missher12/Missher-DSH-Project-Ops) | 项目任务、PLAN.md 开发方案与 READY.md 交付记录 | 会话标题栏 → Project Ops | [最新正式版](https://github.com/Missher12/Missher-DSH-Project-Ops/releases/latest) · [合集快照](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
-| [MSE 持久学习](https://github.com/Missher12/Missher-MSE-Learning) | 在任务范围内学习、召回和复盘 | MSE 设置和命令 | [最新正式版](https://github.com/Missher12/Missher-MSE-Learning/releases/latest) · [合集快照](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
+| [MSE 持久学习](https://github.com/Missher12/Missher-MSE-Learning) | 全局长期纠错、失败经验与每日整理 | MSE 设置和命令 | [最新正式版](https://github.com/Missher12/Missher-MSE-Learning/releases/latest) · [合集快照](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
+| [DSH Memory TDAI 全局记忆](https://github.com/Missher12/Missher-DSH-Memory-TDAI) | 同一配置组内跨项目记忆、来源追溯与召回，可选角色底色和沟通偏好 | 设置 → Memory | [发布记录](https://github.com/Missher12/Missher-DSH-Memory-TDAI/releases) · [源码版本](#current-source-snapshots) |
 | [电脑与浏览器](https://github.com/Missher12/Missher-DSH-Computer-Browser) | 浏览器与电脑控制；开发已暂停 | 浏览器侧栏及电脑工具 | [发布与下载](https://github.com/Missher12/Missher-DSH-Computer-Browser/releases) |
 
 上表“最新正式版”指向各维护插件的最新已验收 Release。[七插件合集及包清单](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1)保留该次桌面发布时的冻结版本，后续插件更新在各自仓库下载；合集版本不限制插件只能搭配某个宿主版本。安装前核对所选 Release 的校验值、最低能力要求和已验证范围。MSE 已通过的检查和剩余限制见其[交付说明](https://github.com/Missher12/Missher-MSE-Learning/blob/main/PUBLICATION.md)。电脑与浏览器插件未包含在合集内，其暂停中的原生流程尚未在新宿主验收。
 
 仓库内的[旧合集记录](../distribution/plugin-set.json)和[仓库记录](../cordis-repositories.json)保留早期发布内容；安装时以所选发布页附带的包清单为准。
 
+<a id="current-source-snapshots"></a>
+
+## 当前源码版本
+
+源码版本与已发布 Release、冻结的桌面合集分别记录。源码更新不会更新已安装插件；安装前请查看各仓库的交付说明与验证记录。
+
+| 插件 | 源码版本 | 源码分支 | 说明 |
+| --- | --- | --- | --- |
+| 上下文管理 | `0.10.7` | [main](https://github.com/Missher12/Missher-DSH-Context-Manager/tree/main) | [行为与兼容范围](https://github.com/Missher12/Missher-DSH-Context-Manager/blob/main/README.md) |
+| MSE 持久学习 | `0.15.0-rebuild.24` | [main](https://github.com/Missher12/Missher-MSE-Learning/tree/main) | [交付说明](https://github.com/Missher12/Missher-MSE-Learning/blob/main/PUBLICATION.md) |
+| DSH Memory TDAI 全局记忆 | `0.1.2-local.18` | [codex/memory-core-character](https://github.com/Missher12/Missher-DSH-Memory-TDAI/tree/codex/memory-core-character) | 开发分支；[验证记录](https://github.com/Missher12/Missher-DSH-Memory-TDAI/blob/codex/memory-core-character/verification/2026-10-30-0.1.2-local.18-acceptance.md) |
+
 ## 插件界面预览
 
-以下截图来自各插件发布时的真实界面，使用隔离测试配置和合成数据。点击截图查看对应仓库的安装说明、更多界面和兼容范围。
+以下截图来自各插件发布时的真实界面，使用隔离测试配置和合成数据。标注版本是截图原版本，当前源码界面可能不同。点击截图查看对应仓库的安装说明、更多界面和兼容范围。
 
 |  |  |
 | --- | --- |

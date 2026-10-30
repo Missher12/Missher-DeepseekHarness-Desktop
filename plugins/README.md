@@ -4,7 +4,7 @@ English | [中文](README.zh.md)
 
 [Repository home](../README.md) · [Install](../docs/cookbook/install-cordis-plugins.md) · [Develop](../docs/cookbook/build-cordis-plugins.md)
 
-This is the common directory for the current Missher projects: eight public DSH plugins, open-source independent Obsidian Memory, and private Media. Every project name opens its own repository. Public DSH plugins have independent builds, packages, settings and installation; none requires a separate common compatibility plugin. Model-row settings, image uploads and composer references also use the Desktop features described below.
+This is the common directory for the current Missher projects: nine public DSH plugins, open-source independent Obsidian Memory, and private Media. Every project name opens its own repository. Public DSH plugins have independent builds, packages, settings and installation; none requires a separate common compatibility plugin. Model-row settings, image uploads and composer references also use the Desktop features described below.
 
 <a id="public-plugins"></a>
 
@@ -12,22 +12,35 @@ This is the common directory for the current Missher projects: eight public DSH 
 
 | Plugin | What it does | Open in DSH | Links |
 | --- | --- | --- | --- |
-| [Context Manager](https://github.com/Missher12/Missher-DSH-Context-Manager) | Pre-request compaction, current context, content, per-reply changes and session totals | Conversation → Context; Settings → Context Management | [Latest release](https://github.com/Missher12/Missher-DSH-Context-Manager/releases/latest) · [Bundle snapshot](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
+| [Context Manager](https://github.com/Missher12/Missher-DSH-Context-Manager) | Current context, usage, summary sources, pre-request and idle compaction | Conversation → Context; Settings → Context Management | [Latest release](https://github.com/Missher12/Missher-DSH-Context-Manager/releases/latest) · [Bundle snapshot](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
 | [Usage Statistics](https://github.com/Missher12/Missher-DSH-Usage-Statistics) | Cross-session usage, activity and model/tool/skill rankings | Settings → Usage Statistics | [Latest release](https://github.com/Missher12/Missher-DSH-Usage-Statistics/releases/latest) · [Bundle snapshot](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
 | [Output Renderer](https://github.com/Missher12/Missher-DSH-Output-Renderer) | Four single-column layouts, full reasoning, tool details and streaming effects | Settings → Output Appearance | [Latest release](https://github.com/Missher12/Missher-DSH-Output-Renderer/releases/latest) · [Bundle snapshot](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
 | [Session Bridge](https://github.com/Missher12/Missher-DSH-Session-Bridge) | Session IDs, cross-session messages, scratch workspaces and archived-session deletion | Sidebar session menu; New Session → workspace selector | [Latest release](https://github.com/Missher12/Missher-DSH-Session-Bridge/releases/latest) · [Bundle snapshot](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
 | [Reasoning Effort](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) | Reasoning slider, colors and per-model levels | Model settings; reasoning control | [Latest release](https://github.com/Missher12/Missher-DSH-Reasoning-Effort/releases/latest) · [Bundle snapshot](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
 | [Project Ops](https://github.com/Missher12/Missher-DSH-Project-Ops) | Project tasks, PLAN.md development plans and READY.md delivery records | Session header → Project Ops | [Latest release](https://github.com/Missher12/Missher-DSH-Project-Ops/releases/latest) · [Bundle snapshot](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
-| [MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) | Scoped learning, recall and review | MSE settings and commands | [Latest release](https://github.com/Missher12/Missher-MSE-Learning/releases/latest) · [Bundle snapshot](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
+| [MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) | Global standing corrections, failure lessons and daily consolidation | MSE settings and commands | [Latest release](https://github.com/Missher12/Missher-MSE-Learning/releases/latest) · [Bundle snapshot](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
+| [DSH Memory TDAI](https://github.com/Missher12/Missher-DSH-Memory-TDAI) | Profile-wide memory, source-linked recall and optional character and communication preferences | Settings → Memory | [Releases](https://github.com/Missher12/Missher-DSH-Memory-TDAI/releases) · [Source snapshots](#current-source-snapshots) |
 | [Computer Browser](https://github.com/Missher12/Missher-DSH-Computer-Browser) | Browser and computer controls; development is paused | Browser sidebar and Computer tools | [Releases](https://github.com/Missher12/Missher-DSH-Computer-Browser/releases) |
 
 Each “Latest release” link above opens the newest accepted regular Release for that maintained plugin. The [seven-plugin set and package list](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) preserves the versions frozen for that Desktop release; download later plugin updates from their own repositories. Bundle versions do not restrict plugins to a single Host version. Check the selected Release’s checksums, minimum capabilities and verified targets before installation. See MSE's [delivery notes](https://github.com/Missher12/Missher-MSE-Learning/blob/main/PUBLICATION.md) for accepted checks and remaining limits. Computer Browser is excluded: its paused native workflows have not been accepted for the new Host.
 
 The repository's [older plugin-set record](../distribution/plugin-set.json) and [repository record](../cordis-repositories.json) retain an earlier release; use the package list attached to the selected release for installation.
 
+<a id="current-source-snapshots"></a>
+
+## Current source snapshots
+
+Source versions are separate from published Releases and the frozen Desktop bundle. A source update does not update an installed plugin. Check each repository's delivery and validation notes before installation.
+
+| Plugin | Source version | Source branch | Notes |
+| --- | --- | --- | --- |
+| Context Manager | `0.10.7` | [main](https://github.com/Missher12/Missher-DSH-Context-Manager/tree/main) | [Behavior and compatibility](https://github.com/Missher12/Missher-DSH-Context-Manager/blob/main/README.md) |
+| MSE Learning | `0.15.0-rebuild.24` | [main](https://github.com/Missher12/Missher-MSE-Learning/tree/main) | [Delivery notes](https://github.com/Missher12/Missher-MSE-Learning/blob/main/PUBLICATION.md) |
+| DSH Memory TDAI | `0.1.2-local.18` | [codex/memory-core-character](https://github.com/Missher12/Missher-DSH-Memory-TDAI/tree/codex/memory-core-character) | Development branch; [validation record](https://github.com/Missher12/Missher-DSH-Memory-TDAI/blob/codex/memory-core-character/verification/2026-10-30-0.1.2-local.18-acceptance.md) |
+
 ## Plugin previews
 
-These screenshots show the real interfaces of the listed plugin releases in isolated test profiles with synthetic data. Select an image for installation instructions, more screenshots and compatibility details in its repository.
+These screenshots show the real interfaces of the listed plugin releases in isolated test profiles with synthetic data. Their labels identify the original versions; current source snapshots may differ. Select an image for installation instructions, more screenshots and compatibility details in its repository.
 
 |  |  |
 | --- | --- |

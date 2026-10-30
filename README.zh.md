@@ -71,7 +71,8 @@ sudo apt install ./deepseek-harness-0.2.1-alpha.2.20261014.1-linux-x64-unsigned.
 | [会话桥接](https://github.com/Missher12/Missher-DSH-Session-Bridge) | 复制会话 ID、跨会话投递、临时工作区和归档会话永久删除 |
 | [思考强度](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) | 思考滑块、配色以及模型能力与档位设置 |
 | [Project Ops 项目任务](https://github.com/Missher12/Missher-DSH-Project-Ops) | 项目任务、PLAN.md 开发方案和 READY.md 交付记录 |
-| [MSE 持久学习](https://github.com/Missher12/Missher-MSE-Learning) | 保存纠错和方法，并按任务与预算召回；只公开产品代码，不含个人学习数据 |
+| [MSE 持久学习](https://github.com/Missher12/Missher-MSE-Learning) | 全局长期纠错、失败经验与每日整理；只公开产品代码，不含个人学习数据 |
+| [DSH Memory TDAI 全局记忆](https://github.com/Missher12/Missher-DSH-Memory-TDAI) | 同一配置组内跨项目记忆、来源追溯与召回，可选角色底色和沟通偏好 |
 | [电脑与浏览器](https://github.com/Missher12/Missher-DSH-Computer-Browser) | 浏览器与电脑控制；开发暂停，当前原生操作尚未验收 |
 | [Media 媒体采集（私有）](https://github.com/Missher12/Missher-Media) | 通过 Chrome CDP 采集、保留证据和选择导出 |
 | [独立 Obsidian 记忆](https://github.com/Missher12/Missher-Obsidian-Memory) | 在 Obsidian 内记笔记、管理记忆与复盘；与已退役的 DSH Obsidian Bundle 分开 |

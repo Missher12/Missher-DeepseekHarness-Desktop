@@ -4,11 +4,11 @@
 
 ## 源码入口
 
-桌面源码在 apps/desktop，公共 Host 和界面模块在 packages。插件清单与版本入口由 cordis-repositories.json 记录；四个原 plugins 子目录已经独立迁移，不再保留可修改副本。
+桌面源码在 apps/desktop，公共 Host 和界面模块在 packages。插件清单、当前源码和发布入口见[插件目录](plugins/README.zh.md)；cordis-repositories.json 保留早期发布记录。四个原 plugins 子目录已经独立迁移，不再保留可修改副本。
 
 ## 独立项目
 
-[Media](https://github.com/Missher12/Missher-Media) 保持私有；[思考强度](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) 公开；[MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) 只包含独立产品导出，不含父项目和学习记录。
+[Media](https://github.com/Missher12/Missher-Media) 保持私有；[思考强度](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) 公开；[MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) 与 [DSH Memory TDAI](https://github.com/Missher12/Missher-DSH-Memory-TDAI) 公开产品代码，不含私人学习记录或记忆库。
 
 会话、凭据、附件、生产 profile、安装备份和私有验收响应不发布。源码发布、应用安装和真实模型验收是三个不同结果。
 
