@@ -61,7 +61,7 @@ Launch **DeepSeek Harness** from the application menu. The DEB package was insta
 
 ## Plugins / 独立插件
 
-Bookmark this repository as the common entry point. Each name below opens its own GitHub repository; the [complete directory](plugins/README.md) explains where to use it, which projects are private, and which work is paused. Follow the [installation guide](docs/cookbook/install-cordis-plugins.md) for DSH plugins; independent Obsidian installs in Obsidian.
+Bookmark this repository as the common entry point. Each name below opens its own GitHub repository; the [complete directory](plugins/README.md) explains where to use it, which projects are private, and which work is paused. The [source version table](plugins/README.md#current-source-snapshots) lists maintained versions and branches. Follow the [installation guide](docs/cookbook/install-cordis-plugins.md) for DSH plugins; independent Obsidian installs in Obsidian.
 
 | Plugin | What it does |
 | --- | --- |
@@ -71,7 +71,7 @@ Bookmark this repository as the common entry point. Each name below opens its ow
 | [Session Bridge](https://github.com/Missher12/Missher-DSH-Session-Bridge) | Session IDs, message delivery, temporary workspaces and permanent deletion of archived sessions |
 | [Reasoning Effort](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) | Reasoning slider and model capability settings |
 | [Project Ops](https://github.com/Missher12/Missher-DSH-Project-Ops) | Project tasks, development plans in PLAN.md and delivery records in READY.md |
-| [MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) | Global standing corrections, failure lessons and daily consolidation; product code only, without personal learning data |
+| [MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) | Standing corrections and failure lessons with global or project scope, plus daily consolidation; product code only, without personal learning data |
 | [DSH Memory TDAI](https://github.com/Missher12/Missher-DSH-Memory-TDAI) | Profile-wide memory, source-linked recall and optional character and communication preferences |
 | [Computer Browser](https://github.com/Missher12/Missher-DSH-Computer-Browser) | Browser and computer controls; development is paused, and current native workflows are not accepted |
 | [Media (private)](https://github.com/Missher12/Missher-Media) | Chrome CDP collection and selected exports |

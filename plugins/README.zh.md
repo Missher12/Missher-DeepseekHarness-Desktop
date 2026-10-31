@@ -18,7 +18,7 @@
 | [会话桥接](https://github.com/Missher12/Missher-DSH-Session-Bridge) | 会话 ID、跨会话投递、临时工作区及归档会话删除 | 侧栏会话菜单；新会话 → 工作区选择器 | [最新正式版](https://github.com/Missher12/Missher-DSH-Session-Bridge/releases/latest) · [合集快照](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
 | [思考强度](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) | 思考滑块、配色及每个模型的档位设置 | 模型设置；思考控制 | [最新正式版](https://github.com/Missher12/Missher-DSH-Reasoning-Effort/releases/latest) · [合集快照](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
 | [Project Ops 项目任务](https://github.com/Missher12/Missher-DSH-Project-Ops) | 项目任务、PLAN.md 开发方案与 READY.md 交付记录 | 会话标题栏 → Project Ops | [最新正式版](https://github.com/Missher12/Missher-DSH-Project-Ops/releases/latest) · [合集快照](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
-| [MSE 持久学习](https://github.com/Missher12/Missher-MSE-Learning) | 全局长期纠错、失败经验与每日整理 | MSE 设置和命令 | [最新正式版](https://github.com/Missher12/Missher-MSE-Learning/releases/latest) · [合集快照](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
+| [MSE 持久学习](https://github.com/Missher12/Missher-MSE-Learning) | 全局或项目范围的长期纠错、失败经验与每日整理 | 设置 → 自我进化 | [最新正式版](https://github.com/Missher12/Missher-MSE-Learning/releases/latest) · [合集快照](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) |
 | [DSH Memory TDAI 全局记忆](https://github.com/Missher12/Missher-DSH-Memory-TDAI) | 同一配置组内跨项目记忆、来源追溯与召回，可选角色底色和沟通偏好 | 设置 → Memory | [发布记录](https://github.com/Missher12/Missher-DSH-Memory-TDAI/releases) · [源码版本](#current-source-snapshots) |
 | [电脑与浏览器](https://github.com/Missher12/Missher-DSH-Computer-Browser) | 浏览器与电脑控制；开发已暂停 | 浏览器侧栏及电脑工具 | [发布与下载](https://github.com/Missher12/Missher-DSH-Computer-Browser/releases) |
 
@@ -34,8 +34,13 @@
 
 | 插件 | 源码版本 | 源码分支 | 说明 |
 | --- | --- | --- | --- |
-| 上下文管理 | `0.10.7` | [main](https://github.com/Missher12/Missher-DSH-Context-Manager/tree/main) | [行为与兼容范围](https://github.com/Missher12/Missher-DSH-Context-Manager/blob/main/README.md) |
-| MSE 持久学习 | `0.15.0-rebuild.24` | [main](https://github.com/Missher12/Missher-MSE-Learning/tree/main) | [交付说明](https://github.com/Missher12/Missher-MSE-Learning/blob/main/PUBLICATION.md) |
+| 上下文管理 | `0.10.8` | [main](https://github.com/Missher12/Missher-DSH-Context-Manager/tree/main) | [行为与兼容范围](https://github.com/Missher12/Missher-DSH-Context-Manager/blob/main/README.md) |
+| 使用统计 | `0.2.2` | [main](https://github.com/Missher12/Missher-DSH-Usage-Statistics/tree/main) | [使用说明](https://github.com/Missher12/Missher-DSH-Usage-Statistics/blob/main/README.md) |
+| 输出外观 | `0.1.5` | [main](https://github.com/Missher12/Missher-DSH-Output-Renderer/tree/main) | [使用说明](https://github.com/Missher12/Missher-DSH-Output-Renderer/blob/main/README.md) |
+| 会话桥接 | `0.1.9` | [main](https://github.com/Missher12/Missher-DSH-Session-Bridge/tree/main) | [使用说明](https://github.com/Missher12/Missher-DSH-Session-Bridge/blob/main/README.md) |
+| 思考强度 | `0.7.7` | [main](https://github.com/Missher12/Missher-DSH-Reasoning-Effort/tree/main) | [使用说明](https://github.com/Missher12/Missher-DSH-Reasoning-Effort/blob/main/README.md) |
+| Project Ops 项目任务 | `0.4.1` | [main](https://github.com/Missher12/Missher-DSH-Project-Ops/tree/main) | [使用说明](https://github.com/Missher12/Missher-DSH-Project-Ops/blob/main/README.md) |
+| MSE 持久学习 | `0.16.0-rc.5` | [main](https://github.com/Missher12/Missher-MSE-Learning/tree/main) | [交付说明](https://github.com/Missher12/Missher-MSE-Learning/blob/main/PUBLICATION.md) |
 | DSH Memory TDAI 全局记忆 | `0.1.2-local.18` | [codex/memory-core-character](https://github.com/Missher12/Missher-DSH-Memory-TDAI/tree/codex/memory-core-character) | 开发分支；[验证记录](https://github.com/Missher12/Missher-DSH-Memory-TDAI/blob/codex/memory-core-character/verification/2026-10-30-0.1.2-local.18-acceptance.md) |
 
 ## 插件界面预览
