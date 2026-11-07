@@ -4,6 +4,8 @@ English | [中文](README.zh.md)
 
 [Repository home](../README.md) · [Installation](../docs/cookbook/install-cordis-plugins.md) · [Development](../docs/cookbook/build-cordis-plugins.md)
 
+![DSH workspace, tools and independent plugins](../docs/images/overview.svg)
+
 Choose independent plugins as needed. Memory Native is the current memory system, and Media-Missher-Ego is the media entry. Each project owns its source, releases, settings and installation.
 
 <a id="public-plugins"></a>
@@ -20,6 +22,7 @@ Choose independent plugins as needed. Memory Native is the current memory system
 | [Reasoning Effort](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) | Supported reasoning levels and inline model controls | Public |
 | [Project Ops](https://github.com/Missher12/Missher-DSH-Project-Ops) | Project tasks and files, artifact previews and file locations | Public |
 | [Superagent](https://github.com/Missher12/Missher-DSH-Superagent) | Dispatch project tasks, inspect progress and follow up | Public |
+| [Focus](https://github.com/Missher12/Missher-DSH-Focus) | Planning, implementation, debugging, review and delivery | Public |
 | [MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) | Standing corrections, failure lessons and learning consolidation | Private |
 
 ## Media@Missher
@@ -31,6 +34,10 @@ Choose independent plugins as needed. Memory Native is the current memory system
 | Project | Purpose | Repository |
 | --- | --- | --- |
 | [Windows Guard](https://github.com/Missher12/dsh-windows-guard) | Native Windows executor and tool-availability checks | Private; Windows only |
+
+## Community directory
+
+[Plugin Catalog](https://github.com/Missher12/Missher-DSH-Plugin-Catalog) is a community-directory collaboration copy for discovering and submitting plugin entries. The projects above are the current Missher entries.
 
 <a id="current-source-snapshots"></a>
 <a id="release-and-version-compatibility"></a>

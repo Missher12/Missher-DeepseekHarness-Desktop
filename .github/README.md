@@ -2,6 +2,8 @@
 
 <h1>Missher DeepSeek Harness · 社区桌面端</h1>
 
+<p><img src="../docs/images/overview.svg" alt="DeepSeek Harness 功能示意" width="100%"></p>
+
 <p>在一个桌面工作区里使用模型、文件、工具与可选插件。</p>
 
 <p>
@@ -27,6 +29,14 @@
 
 <a id="downloads"></a>
 
+<!-- existing-screenshots -->
+## 界面示例
+
+<table><tr><td><a href="../docs/images/desktop/desktop-ubuntu-alpha2.png"><img src="../docs/images/desktop/desktop-ubuntu-alpha2.png" alt="Ubuntu desktop with a new session in an isolated workspace" width="100%"></a></td><td><a href="../docs/images/desktop/desktop-intel-mac-alpha2.png"><img src="../docs/images/desktop/desktop-intel-mac-alpha2.png" alt="Intel Mac desktop with a new session in an isolated workspace" width="100%"></a></td></tr></table>
+
+<sub>来自项目已有文档；截图版本与验证范围见<a href="../README.md">原始说明</a>，点击可放大。</sub>
+<!-- /existing-screenshots -->
+
 ## 快速开始
 
 1. 从 [Releases](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases) 选择适合系统与架构的桌面安装包。
@@ -44,6 +54,7 @@
 | --- | --- |
 | 当前记忆系统 | [Memory Native](https://github.com/Missher12/Missher-DSH-Memory-Native) |
 | 当前媒体采集 | [Media-Missher-Ego](https://github.com/Missher12/Media-Missher-Ego)（私有） |
+| 执行增强 | [Focus](https://github.com/Missher12/Missher-DSH-Focus)（公开） |
 | 日常插件与可选扩展 | [完整插件目录](../plugins/README.zh.md) |
 
 ## 详细文档

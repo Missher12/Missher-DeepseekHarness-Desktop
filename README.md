@@ -67,7 +67,7 @@ The [plugin directory](plugins/README.md) groups everyday plugins and platform-s
 | --- | --- |
 | [Memory Native](https://github.com/Missher12/Missher-DSH-Memory-Native) | Current memory system |
 | [Media@Missher Ego](https://github.com/Missher12/Media-Missher-Ego) | Current private media entry |
-| [DSH plugin directory](plugins/README.md) | Context, statistics, output appearance, Session Bridge, Reasoning Effort, Project Ops, Superagent and MSE |
+| [DSH plugin directory](plugins/README.md) | Context, statistics, output appearance, Session Bridge, Reasoning Effort, Project Ops, Superagent, Focus and MSE |
 
 Plugins release and install separately. Private projects require repository access; personal settings, sessions, memory and learning data remain in their respective runtime environments.
 

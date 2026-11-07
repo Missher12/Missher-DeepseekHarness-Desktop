@@ -3,17 +3,20 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write plugins/README.md
 /dsh-plugin-directory:
-  en: 2a42feb678dc820f
-  zh: bb16b4da82153077
+  en: df25442e6e7f9781
+  zh: 9ca2d362e43ae471
 /dsh-plugin-directory/everyday-plugins:
-  en: 8c39d29b7c209c70
-  zh: 0132a2e68207a978
+  en: 72a9bbaef3a7a692
+  zh: afa0622361086cfa
 /dsh-plugin-directory/media-missher:
   en: fc0cc99ddb14aba6
   zh: 6b2d8393a1f10292
 /dsh-plugin-directory/optional-extensions:
-  en: ef62aa2763ccdd67
-  zh: 450439887fbbb81e
+  en: eabf9cb587eddce3
+  zh: 6c7ebdba04bf357f
+/dsh-plugin-directory/community-directory:
+  en: 1b90f3ac1804a281
+  zh: 4c123ee52ce8a810
 /dsh-plugin-directory/versions-and-installation:
   en: 73d3136e5d0caac8
   zh: b5cc7931fdbfa4df

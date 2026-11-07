@@ -4,6 +4,8 @@
 
 [仓库首页](../README.zh.md) · [安装指南](../docs/cookbook/install-cordis-plugins.zh.md) · [开发指南](../docs/cookbook/build-cordis-plugins.zh.md)
 
+![DSH 工作区、工具与独立插件功能示意](../docs/images/overview.svg)
+
 按需要选择独立插件。当前记忆系统使用 Memory Native，媒体采集使用 Media-Missher-Ego；各项目分别维护源码、发布、配置和安装。
 
 <a id="public-plugins"></a>
@@ -20,6 +22,7 @@
 | [思考强度](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) | 模型支持的思考档位与行内控制 | 公开 |
 | [Project Ops · 项目工作区](https://github.com/Missher12/Missher-DSH-Project-Ops) | 项目任务与文件、产物预览和定位 | 公开 |
 | [Superagent · 项目任务](https://github.com/Missher12/Missher-DSH-Superagent) | 派出项目任务，查看进度并继续跟进 | 公开 |
+| [Focus · 执行增强](https://github.com/Missher12/Missher-DSH-Focus) | 规划、实施、调试、检查与交付 | 公开 |
 | [MSE · 持久学习](https://github.com/Missher12/Missher-MSE-Learning) | 长期纠错、失败经验与学习整理 | 私有 |
 
 ## Media@Missher
@@ -31,6 +34,10 @@
 | 项目 | 用途 | 仓库 |
 | --- | --- | --- |
 | [Windows Guard](https://github.com/Missher12/dsh-windows-guard) | 原生 Windows 执行器与工具可用性检查 | 私有；Windows 专用 |
+
+## 社区插件目录
+
+[Plugin Catalog](https://github.com/Missher12/Missher-DSH-Plugin-Catalog) 是社区插件目录的协作副本，用于发现与提交插件条目。当前 Missher 项目以上述入口为准。
 
 <a id="current-source-snapshots"></a>
 <a id="release-and-version-compatibility"></a>

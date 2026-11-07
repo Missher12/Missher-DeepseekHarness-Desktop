@@ -67,7 +67,7 @@ sudo apt install ./deepseek-harness-0.2.1-alpha.2.20261014.1-linux-x64-unsigned.
 | --- | --- |
 | [Memory Native](https://github.com/Missher12/Missher-DSH-Memory-Native) | 当前记忆系统 |
 | [Media@Missher Ego](https://github.com/Missher12/Media-Missher-Ego) | 当前媒体采集入口，私有 |
-| [DSH 插件目录](plugins/README.zh.md) | 上下文、统计、输出外观、会话桥接、思考强度、Project Ops、Superagent 与 MSE |
+| [DSH 插件目录](plugins/README.zh.md) | 上下文、统计、输出外观、会话桥接、思考强度、Project Ops、Superagent、Focus 与 MSE |
 
 各插件分别发布和安装。私有项目需要仓库访问权限；个人配置、会话、记忆和学习数据继续由各自运行环境保管。
 
