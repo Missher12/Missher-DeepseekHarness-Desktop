@@ -78,7 +78,10 @@
       "repository": "https://github.com/Missher12/dsh-windows-guard",
       "sourceRef": "main",
       "visibility": "public",
-      "platform": "windows"
+      "platforms": [
+        "windows",
+        "macos"
+      ]
     }
   ]
 }
