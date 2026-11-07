@@ -56,6 +56,12 @@
       "visibility": "public"
     },
     {
+      "id": "@missher/dsh-dashboard",
+      "repository": "https://github.com/Missher12/Missher-DSH-Dashboard",
+      "sourceRef": "main",
+      "visibility": "public"
+    },
+    {
       "id": "@missher/dsh-mse-learning",
       "repository": "https://github.com/Missher12/Missher-MSE-Learning",
       "sourceRef": "main",

@@ -23,6 +23,7 @@ Choose independent plugins as needed. Memory Native is the current memory system
 | [Project Ops](https://github.com/Missher12/Missher-DSH-Project-Ops) | Project tasks and files, artifact previews and file locations | Public |
 | [Superagent](https://github.com/Missher12/Missher-DSH-Superagent) | Dispatch project tasks, inspect progress and follow up | Public |
 | [Focus](https://github.com/Missher12/Missher-DSH-Focus) | Planning, implementation, debugging, review and delivery | Public |
+| [Dashboard](https://github.com/Missher12/Missher-DSH-Dashboard) | Session status, Token trends, goals and Superagent overview | Public |
 | [MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) | Standing corrections, failure lessons and learning consolidation | Public |
 
 ## Media@Missher
@@ -48,7 +49,7 @@ Choose independent plugins as needed. Memory Native is the current memory system
 
 ### Download all plugins with an agent
 
-The [machine-readable catalog](catalog.json) lists 12 independent Missher plugins, including 11 public repositories and 1 private repository. The desktop host and community directory are separate projects. Windows Guard is for Windows; downloading its source does not make it suitable for another platform.
+The [machine-readable catalog](catalog.json) lists 13 independent Missher plugins, including 12 public repositories and 1 private repository. The desktop host and community directory are separate projects. Windows Guard is for Windows; downloading its source does not make it suitable for another platform.
 
 Give an agent this repository URL and ask: “Read `plugins/catalog.json`. Clone every listed plugin into a new directory using its `sourceRef`, and report the downloaded branch and commit. Keep existing installations, settings and data. List any repository that cannot be accessed; do not report a partial download as complete.” The agent needs Git; Media-Missher-Ego additionally requires repository access.
 
