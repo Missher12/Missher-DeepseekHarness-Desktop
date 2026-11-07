@@ -59,7 +59,7 @@
       "id": "@missher/dsh-mse-learning",
       "repository": "https://github.com/Missher12/Missher-MSE-Learning",
       "sourceRef": "main",
-      "visibility": "private"
+      "visibility": "public"
     },
     {
       "id": "@missher/dsh-media-missher-ego",
@@ -71,7 +71,7 @@
       "id": "dsh-windows-guard",
       "repository": "https://github.com/Missher12/dsh-windows-guard",
       "sourceRef": "main",
-      "visibility": "private",
+      "visibility": "public",
       "platform": "windows"
     }
   ]

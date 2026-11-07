@@ -23,7 +23,7 @@ Choose independent plugins as needed. Memory Native is the current memory system
 | [Project Ops](https://github.com/Missher12/Missher-DSH-Project-Ops) | Project tasks and files, artifact previews and file locations | Public |
 | [Superagent](https://github.com/Missher12/Missher-DSH-Superagent) | Dispatch project tasks, inspect progress and follow up | Public |
 | [Focus](https://github.com/Missher12/Missher-DSH-Focus) | Planning, implementation, debugging, review and delivery | Public |
-| [MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) | Standing corrections, failure lessons and learning consolidation | Private |
+| [MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) | Standing corrections, failure lessons and learning consolidation | Public |
 
 ## Media@Missher
 
@@ -33,7 +33,7 @@ Choose independent plugins as needed. Memory Native is the current memory system
 
 | Project | Purpose | Repository |
 | --- | --- | --- |
-| [Windows Guard](https://github.com/Missher12/dsh-windows-guard) | Native Windows executor and tool-availability checks | Private; Windows only |
+| [Windows Guard](https://github.com/Missher12/dsh-windows-guard) | Native Windows executor and tool-availability checks | Public; Windows only |
 
 ## Community directory
 
@@ -48,14 +48,14 @@ Choose independent plugins as needed. Memory Native is the current memory system
 
 ### Download all plugins with an agent
 
-The [machine-readable catalog](catalog.json) lists 12 independent Missher plugins, including 9 public repositories and 3 private repositories. The desktop host and community directory are separate projects. Windows Guard is for Windows; downloading its source does not make it suitable for another platform.
+The [machine-readable catalog](catalog.json) lists 12 independent Missher plugins, including 11 public repositories and 1 private repository. The desktop host and community directory are separate projects. Windows Guard is for Windows; downloading its source does not make it suitable for another platform.
 
-Give an agent this repository URL and ask: “Read `plugins/catalog.json`. Clone every listed plugin into a new directory using its `sourceRef`, and report the downloaded branch and commit. Keep existing installations, settings and data. List any repository that cannot be accessed; do not report a partial download as complete.” The agent needs Git and permission to read MSE, Media-Missher-Ego and Windows Guard.
+Give an agent this repository URL and ask: “Read `plugins/catalog.json`. Clone every listed plugin into a new directory using its `sourceRef`, and report the downloaded branch and commit. Keep existing installations, settings and data. List any repository that cannot be accessed; do not report a partial download as complete.” The agent needs Git; Media-Missher-Ego additionally requires repository access.
 
 This downloads source repositories. For an installable package, follow the corresponding project's build or Release instructions; a newer development branch does not imply a matching Release asset exists. The catalog names branches rather than fixed versions, so read each downloaded `package.json` for its actual version.
 
 Choose versions from each project’s release records and installation guide. Development branches, released packages and the loaded version in the current application are separate records; source updates do not replace plugins in daily DSH automatically. Each project documents minimum Host capabilities, verified targets and limitations.
 
-MSE, Media-Missher-Ego and Windows Guard require an authorized GitHub account. Settings, sessions, memory, learning libraries and collected data remain in their respective runtime environments.
+Only Media-Missher-Ego requires an authorized GitHub account. Settings, sessions, memory, learning libraries and collected data remain in their respective runtime environments.
 
 The [older plugin-set manifest](../distribution/plugin-set.json) and [early repository record](../cordis-repositories.json) retain versions and checksums from their original releases; use the projects above for current plugin choices.
