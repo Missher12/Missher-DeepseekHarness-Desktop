@@ -55,6 +55,7 @@
 | 当前记忆系统 | [Memory Native](https://github.com/Missher12/Missher-DSH-Memory-Native) |
 | 当前媒体采集 | [Media-Missher-Ego](https://github.com/Missher12/Media-Missher-Ego)（私有） |
 | 执行增强 | [Focus](https://github.com/Missher12/Missher-DSH-Focus)（公开） |
+| 交给 Agent 批量下载 | [12 个插件清单](../plugins/catalog.json) · [使用说明](../plugins/README.zh.md#download-all-plugins-with-an-agent) |
 | 日常插件与可选扩展 | [完整插件目录](../plugins/README.zh.md) |
 
 ## 详细文档

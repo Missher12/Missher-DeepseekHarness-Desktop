@@ -71,6 +71,8 @@ The [plugin directory](plugins/README.md) groups everyday plugins and platform-s
 
 Plugins release and install separately. Private projects require repository access; personal settings, sessions, memory and learning data remain in their respective runtime environments.
 
+To download all plugin sources in one agent conversation, use the [12-plugin catalog](plugins/catalog.json) and [batch-download instructions](plugins/README.md#download-all-plugins-with-an-agent).
+
 ## Common questions
 
 **Why is an installed plugin missing?** Check the active application/profile, whether the plugin is enabled, and the load error. Restart or reload as requested by the host. Updating Git source alone does not update an installed application.

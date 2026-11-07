@@ -71,6 +71,8 @@ sudo apt install ./deepseek-harness-0.2.1-alpha.2.20261014.1-linux-x64-unsigned.
 
 各插件分别发布和安装。私有项目需要仓库访问权限；个人配置、会话、记忆和学习数据继续由各自运行环境保管。
 
+需要在一个 Agent 会话中下载全部插件源码时，使用[12 个插件清单](plugins/catalog.json)和[批量下载说明](plugins/README.zh.md#download-all-plugins-with-an-agent)。
+
 ## 常见问题
 
 **为什么安装后找不到插件？** 检查当前应用及配置组是否正确、插件是否启用和加载错误；按宿主提示重启或重新加载。只更新 Git 源码不会自动更新已安装的应用。

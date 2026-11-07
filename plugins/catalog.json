@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "plugins": [
+    {
+      "id": "@missher/dsh-context-manager",
+      "repository": "https://github.com/Missher12/Missher-DSH-Context-Manager",
+      "sourceRef": "main",
+      "visibility": "public"
+    },
+    {
+      "id": "@missher/dsh-usage-statistics",
+      "repository": "https://github.com/Missher12/Missher-DSH-Usage-Statistics",
+      "sourceRef": "main",
+      "visibility": "public"
+    },
+    {
+      "id": "@missher/dsh-session-bridge",
+      "repository": "https://github.com/Missher12/Missher-DSH-Session-Bridge",
+      "sourceRef": "main",
+      "visibility": "public"
+    },
+    {
+      "id": "@missher/dsh-superagent",
+      "repository": "https://github.com/Missher12/Missher-DSH-Superagent",
+      "sourceRef": "main",
+      "visibility": "public"
+    },
+    {
+      "id": "@missher/dsh-output-renderer",
+      "repository": "https://github.com/Missher12/Missher-DSH-Output-Renderer",
+      "sourceRef": "main",
+      "visibility": "public"
+    },
+    {
+      "id": "@missher/dsh-reasoning-effort",
+      "repository": "https://github.com/Missher12/Missher-DSH-Reasoning-Effort",
+      "sourceRef": "main",
+      "visibility": "public"
+    },
+    {
+      "id": "@missher/dsh-project-ops",
+      "repository": "https://github.com/Missher12/Missher-DSH-Project-Ops",
+      "sourceRef": "main",
+      "visibility": "public"
+    },
+    {
+      "id": "@missher/dsh-focus",
+      "repository": "https://github.com/Missher12/Missher-DSH-Focus",
+      "sourceRef": "main",
+      "visibility": "public"
+    },
+    {
+      "id": "@missher/dsh-memory",
+      "repository": "https://github.com/Missher12/Missher-DSH-Memory-Native",
+      "sourceRef": "codex/memory-evidence-navigation",
+      "visibility": "public"
+    },
+    {
+      "id": "@missher/dsh-mse-learning",
+      "repository": "https://github.com/Missher12/Missher-MSE-Learning",
+      "sourceRef": "main",
+      "visibility": "private"
+    },
+    {
+      "id": "@missher/dsh-media-missher-ego",
+      "repository": "https://github.com/Missher12/Media-Missher-Ego",
+      "sourceRef": "main",
+      "visibility": "private"
+    },
+    {
+      "id": "dsh-windows-guard",
+      "repository": "https://github.com/Missher12/dsh-windows-guard",
+      "sourceRef": "main",
+      "visibility": "private",
+      "platform": "windows"
+    }
+  ]
+}

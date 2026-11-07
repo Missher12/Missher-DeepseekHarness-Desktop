@@ -44,6 +44,16 @@ Choose independent plugins as needed. Memory Native is the current memory system
 
 ## Versions and installation
 
+<a id="download-all-plugins-with-an-agent"></a>
+
+### Download all plugins with an agent
+
+The [machine-readable catalog](catalog.json) lists 12 independent Missher plugins, including 9 public repositories and 3 private repositories. The desktop host and community directory are separate projects. Windows Guard is for Windows; downloading its source does not make it suitable for another platform.
+
+Give an agent this repository URL and ask: “Read `plugins/catalog.json`. Clone every listed plugin into a new directory using its `sourceRef`, and report the downloaded branch and commit. Keep existing installations, settings and data. List any repository that cannot be accessed; do not report a partial download as complete.” The agent needs Git and permission to read MSE, Media-Missher-Ego and Windows Guard.
+
+This downloads source repositories. For an installable package, follow the corresponding project's build or Release instructions; a newer development branch does not imply a matching Release asset exists. The catalog names branches rather than fixed versions, so read each downloaded `package.json` for its actual version.
+
 Choose versions from each project’s release records and installation guide. Development branches, released packages and the loaded version in the current application are separate records; source updates do not replace plugins in daily DSH automatically. Each project documents minimum Host capabilities, verified targets and limitations.
 
 MSE, Media-Missher-Ego and Windows Guard require an authorized GitHub account. Settings, sessions, memory, learning libraries and collected data remain in their respective runtime environments.
