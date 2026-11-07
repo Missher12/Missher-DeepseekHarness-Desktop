@@ -30,22 +30,7 @@ Choose independent plugins as needed. Memory Native is the current memory system
 
 | Project | Purpose | Repository |
 | --- | --- | --- |
-| [DSH Lark](https://github.com/Missher12/Missher-DSH-Lark) | Lark messaging and DSH session integration | Public |
 | [Windows Guard](https://github.com/Missher12/dsh-windows-guard) | Native Windows executor and tool-availability checks | Private; Windows only |
-
-## Legacy and paused projects
-
-These repositories retain their maintenance records outside the current recommendations. Choose Native for everyday memory and Ego for media collection; each legacy project continues to own its existing settings and data.
-
-| Project | Current role |
-| --- | --- |
-| [Memory TDAI](https://github.com/Missher12/Missher-DSH-Memory-TDAI) | Legacy private memory implementation; Memory Native is the current entry |
-| [Media CDP](https://github.com/Missher12/Missher-Media) | Legacy CDP collection implementation; Media-Missher-Ego is the current entry |
-| [Computer Browser](https://github.com/Missher12/Missher-DSH-Computer-Browser) | Development paused; see its documentation for accepted native workflows |
-
-## Independent Obsidian project
-
-[Obsidian Memory](https://github.com/Missher12/Missher-Obsidian-Memory) provides notes, memory and review in Obsidian, with installation separate from DSH plugins. Users retain their personal Vaults and notes.
 
 <a id="current-source-snapshots"></a>
 <a id="release-and-version-compatibility"></a>
@@ -54,6 +39,6 @@ These repositories retain their maintenance records outside the current recommen
 
 Choose versions from each project’s release records and installation guide. Development branches, released packages and the loaded version in the current application are separate records; source updates do not replace plugins in daily DSH automatically. Each project documents minimum Host capabilities, verified targets and limitations.
 
-MSE, Media-Missher-Ego, Memory TDAI and Windows Guard require an authorized GitHub account. Settings, sessions, memory, learning libraries and collected data remain in their respective runtime environments.
+MSE, Media-Missher-Ego and Windows Guard require an authorized GitHub account. Settings, sessions, memory, learning libraries and collected data remain in their respective runtime environments.
 
 The [older plugin-set manifest](../distribution/plugin-set.json) and [early repository record](../cordis-repositories.json) retain versions and checksums from their original releases; use the projects above for current plugin choices.

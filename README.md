@@ -61,14 +61,13 @@ Launch **DeepSeek Harness** from the application menu. The DEB package was insta
 
 ## Plugins / 独立插件
 
-The [plugin directory](plugins/README.md) groups everyday plugins, optional extensions and legacy projects. Each project's own documentation maintains its installation and version requirements.
+The [plugin directory](plugins/README.md) groups everyday plugins and platform-specific extensions. Each project's own documentation maintains its installation and version requirements.
 
 | Entry | Purpose |
 | --- | --- |
 | [Memory Native](https://github.com/Missher12/Missher-DSH-Memory-Native) | Current memory system |
 | [Media@Missher Ego](https://github.com/Missher12/Media-Missher-Ego) | Current private media entry |
 | [DSH plugin directory](plugins/README.md) | Context, statistics, output appearance, Session Bridge, Reasoning Effort, Project Ops, Superagent and MSE |
-| [Independent Obsidian Memory](https://github.com/Missher12/Missher-Obsidian-Memory) | Separate memory project installed in Obsidian |
 
 Plugins release and install separately. Private projects require repository access; personal settings, sessions, memory and learning data remain in their respective runtime environments.
 

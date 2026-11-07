@@ -30,22 +30,7 @@
 
 | 项目 | 用途 | 仓库 |
 | --- | --- | --- |
-| [DSH Lark](https://github.com/Missher12/Missher-DSH-Lark) | 飞书与 DSH 的会话接入 | 公开 |
 | [Windows Guard](https://github.com/Missher12/dsh-windows-guard) | 原生 Windows 执行器与工具可用性检查 | 私有；Windows 专用 |
-
-## 旧版与暂停项目
-
-这些仓库保留维护记录，移出当前推荐入口。日常记忆选择 Native，媒体采集选择 Ego；旧版配置与数据继续由原项目管理。
-
-| 项目 | 当前定位 |
-| --- | --- |
-| [Memory TDAI](https://github.com/Missher12/Missher-DSH-Memory-TDAI) | 旧记忆实现，私有；当前入口为 Memory Native |
-| [Media CDP](https://github.com/Missher12/Missher-Media) | 旧 CDP 采集实现；当前入口为 Media-Missher-Ego |
-| [Computer Browser](https://github.com/Missher12/Missher-DSH-Computer-Browser) | 开发暂停；原生操作的已验证范围见项目说明 |
-
-## 独立 Obsidian 项目
-
-[Obsidian Memory](https://github.com/Missher12/Missher-Obsidian-Memory) 在 Obsidian 中提供笔记、记忆与复盘，安装位置与 DSH 插件分开。个人 Vault 与笔记由用户保管。
 
 <a id="current-source-snapshots"></a>
 <a id="release-and-version-compatibility"></a>
@@ -54,6 +39,6 @@
 
 从各项目的发布记录和安装说明选择版本。开发分支、已发布安装包和当前应用中的已加载版本分别记录；源码更新不会自动替换日常 DSH 中的插件。最低宿主能力、已验证范围和限制以对应项目说明为准。
 
-MSE、Media-Missher-Ego、Memory TDAI 和 Windows Guard 需要有访问权限的 GitHub 账号。配置、会话、记忆、学习库和采集数据保存在各自运行环境中。
+MSE、Media-Missher-Ego 和 Windows Guard 需要有访问权限的 GitHub 账号。配置、会话、记忆、学习库和采集数据保存在各自运行环境中。
 
 [旧合集清单](../distribution/plugin-set.json)和[早期仓库记录](../cordis-repositories.json)保留原发布时的版本与校验信息；当前插件选择以上述项目为准。
