@@ -4,20 +4,20 @@
 
 ## 源码入口
 
-桌面源码在 apps/desktop，公共 Host 和界面模块在 packages。插件清单、当前源码和发布入口见[插件目录](plugins/README.zh.md)；cordis-repositories.json 保留早期发布记录。四个原 plugins 子目录已经独立迁移，不再保留可修改副本。
+桌面源码在 apps/desktop，公共 Host 和界面模块在 packages。[插件目录](plugins/README.zh.md)维护当前项目入口；原插件导入历史继续保留，业务源码由对应独立仓库维护。
 
-## 独立项目
+## 当前项目
 
-[Media](https://github.com/Missher12/Missher-Media) 保持私有；[思考强度](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) 公开；[MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) 与 [DSH Memory TDAI](https://github.com/Missher12/Missher-DSH-Memory-TDAI) 公开产品代码，不含私人学习记录或记忆库。
+记忆系统使用 [Memory Native](https://github.com/Missher12/Missher-DSH-Memory-Native)，媒体采集使用 [Media-Missher-Ego](https://github.com/Missher12/Media-Missher-Ego)。[MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) 与 Media-Missher-Ego 保持私有；其他项目的访问要求见插件目录。
 
-会话、凭据、附件、生产 profile、安装备份和私有验收响应不发布。源码发布、应用安装和真实模型验收是三个不同结果。
+会话、凭据、附件、个人记忆、学习库、采集数据和生产 profile 由各自运行环境保管。源码发布、应用安装和真实模型验收分别记录。
 
-## Git 整理
+## 上游与发布记录
 
-项目统一 Missher 前缀。改名保留历史及原地址重定向；旧 Inter 工作树与未提交工作保留。旧产品使用 Missher-Archive 前缀，有未合并 PR 的仓库保持可写；不删除 PR、分支或历史。上游协作 fork 是 [Missher-DSH-Upstream](https://github.com/Missher12/Missher-DSH-Upstream)，插件目录 fork 是 [Missher-DSH-Plugin-Catalog](https://github.com/Missher12/Missher-DSH-Plugin-Catalog)。
+社区桌面在本仓库维护，官方上游是 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)。仓库中的 cordis-repositories.json 与 distribution/plugin-set.json 保留早期发布身份；当前项目选择与下载入口以插件目录和各项目的发布说明为准。
 
 ## 平台
 
-本次下载提供 Intel Mac 与 Ubuntu x64。Ubuntu 构建由 Missher Ubuntu Desktop packages 工作流执行，包含运行时 Host、Office 转换、实际安装和 Xvfb 桌面窗口检查。两端复用产品源码，分别生成本机二进制与原生依赖；只有检查通过并已发布的安装包属于下载交付。
+桌面安装包见本仓库 Releases。每个版本实际提供的平台、架构、签名和验证范围以该版本的资产及发布说明为准。
 
 根 LICENSE、THIRD_PARTY_NOTICES.md 与独立插件许可证继续保留。

@@ -28,9 +28,9 @@ Intel 芯片的 Mac 选择 **Intel Mac**；使用 Intel/AMD 64 位处理器的 U
 | **Ubuntu x64** | [DEB 安装包（推荐）](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2.20261014.1/deepseek-harness-0.2.1-alpha.2.20261014.1-linux-x64-unsigned.deb) · [版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) | Ubuntu 24.04 x64 |
 | **Ubuntu x64 便携格式** | [AppImage](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2.20261014.1/deepseek-harness-0.2.1-alpha.2.20261014.1-linux-x64-unsigned.AppImage) | 已构建；未单独完成 AppImage 启动验收 |
 
-当前社区正式发布为 **0.2.1-alpha.2.20261014.1**，基于官方 0.2.1-alpha.2，包含归档删除、模型行内设置与 Context local.9 所需的 Missher 扩展。[七插件合集及精确包清单](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1)保留桌面发布时的版本；安装插件后续更新，请使用[插件目录](plugins/README.zh.md)中的“最新正式版”入口。合集不包含 Media、独立 Obsidian 和已暂停的电脑与浏览器插件。
+当前桌面安装包见 [Releases](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases)。上表和[七插件合集](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1)保留 **0.2.1-alpha.2.20261014.1** 的历史下载；当前插件更新使用[插件目录](plugins/README.zh.md)中的独立项目入口。
 
-Ubuntu DEB 已通过安装及桌面启动检查；Intel Mac DMG 已通过原生打包、完整性、隔离工作区和实际界面检查。[验证说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1)列出准确范围，这些检查不代表每种模型或插件流程都已验收。桌面安装包和插件包需要分别安装到目标电脑。
+上述历史版本的 Ubuntu DEB 已通过安装及桌面启动检查；Intel Mac DMG 已通过原生打包、完整性、隔离工作区和实际界面检查。[验证说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1)列出准确范围，这些检查不代表每种模型或插件流程都已验收。桌面安装包和插件包需要分别安装到目标电脑。
 
 每个发布页提供 SHA-256 校验文件和验证范围，[全部发布记录](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases)保留早期安装包。GitHub 的 **Code → Download ZIP** 下载的是源码，不能代替安装包。Linux x64 使用已发布的更新源，下载和安装分别由用户触发，禁止降级；本机 DEB 安装与同版本检查已验证，跨版本自动安装尚未实测。Intel Mac 未签名版使用 DMG 手动安装。
 
@@ -57,27 +57,20 @@ sudo apt install ./deepseek-harness-0.2.1-alpha.2.20261014.1-linux-x64-unsigned.
 1. 选择一个项目文件夹作为工作区。如果系统没有可用的“文档”目录，手动选择文件夹即可。
 2. 打开模型设置，填入自己的服务商、地址、API Key 和模型名称；文本、图片与思考档位取决于模型实际能力。
 3. 发一条简单消息检查服务是否可用，模型调用费用由所使用的服务商计算。
-4. 解压配套插件合集，通过 **插件 → 添加插件** 逐个安装所需 `.tgz`。更新已有版本时按该插件安装说明操作，等活动任务结束再重启；对照所选发布清单检查已安装及已启用版本。桌面安装包不会自动安装个人插件。
+4. 从[插件目录](plugins/README.zh.md)选择所需插件，按对应项目的安装指南更新。等活动任务结束后再按宿主提示重新加载或重启；核对当前配置组中的已安装与已加载版本。桌面安装包不会自动安装个人插件。
 
 ## 独立插件：按需要选择
 
-收藏本仓库即可作为统一入口。下表每个名字都能打开自己的 GitHub；[完整目录](plugins/README.zh.md)说明使用位置、私有项目和暂停范围，[源码版本表](plugins/README.zh.md#current-source-snapshots)列出维护中的版本与分支。DSH 插件按[安装指南](docs/cookbook/install-cordis-plugins.zh.md)操作；独立 Obsidian 插件安装在 Obsidian 中。
+[插件目录](plugins/README.zh.md)集中日常插件、可选扩展与旧版项目，安装和版本要求由各项目自己的说明维护。
 
-| 插件 | 主要用途 |
+| 入口 | 用途 |
 | --- | --- |
-| [上下文管理](https://github.com/Missher12/Missher-DSH-Context-Manager) | 查看当前会话上下文、来源、用量和压缩记录 |
-| [使用统计](https://github.com/Missher12/Missher-DSH-Usage-Statistics) | 查看跨会话活动、用量、排行及可调色方格 |
-| [输出外观](https://github.com/Missher12/Missher-DSH-Output-Renderer) | 四种阅读布局、字号间距与流式动效 |
-| [会话桥接](https://github.com/Missher12/Missher-DSH-Session-Bridge) | 复制会话 ID、跨会话投递、临时工作区和归档会话永久删除 |
-| [思考强度](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) | 思考滑块、配色以及模型能力与档位设置 |
-| [Project Ops 项目任务](https://github.com/Missher12/Missher-DSH-Project-Ops) | 项目任务、PLAN.md 开发方案和 READY.md 交付记录 |
-| [MSE 持久学习](https://github.com/Missher12/Missher-MSE-Learning) | 全局或项目范围的长期纠错、失败经验与每日整理；只公开产品代码，不含个人学习数据 |
-| [DSH Memory TDAI 全局记忆](https://github.com/Missher12/Missher-DSH-Memory-TDAI) | 同一配置组内跨项目记忆、来源追溯与召回，可选角色底色和沟通偏好 |
-| [电脑与浏览器](https://github.com/Missher12/Missher-DSH-Computer-Browser) | 浏览器与电脑控制；开发暂停，当前原生操作尚未验收 |
-| [Media 媒体采集（私有）](https://github.com/Missher12/Missher-Media) | 通过 Chrome CDP 采集、保留证据和选择导出 |
-| [独立 Obsidian 记忆](https://github.com/Missher12/Missher-Obsidian-Memory) | 在 Obsidian 内记笔记、管理记忆与复盘；与已退役的 DSH Obsidian Bundle 分开 |
+| [Memory Native](https://github.com/Missher12/Missher-DSH-Memory-Native) | 当前记忆系统 |
+| [Media@Missher Ego](https://github.com/Missher12/Media-Missher-Ego) | 当前媒体采集入口，私有 |
+| [DSH 插件目录](plugins/README.zh.md) | 上下文、统计、输出外观、会话桥接、思考强度、Project Ops、Superagent 与 MSE |
+| [独立 Obsidian Memory](https://github.com/Missher12/Missher-Obsidian-Memory) | 安装在 Obsidian 中的独立记忆项目 |
 
-只有 Media 保持独立私有仓库；独立 Obsidian Memory 以 MIT 许可证开源。个人 Vault、笔记和学习记录仍不公开。所有插件按需选择，宿主版本支持原则见[发布与版本兼容](plugins/README.zh.md#release-and-version-compatibility)。
+各插件分别发布和安装。私有项目需要仓库访问权限；个人配置、会话、记忆和学习数据继续由各自运行环境保管。
 
 ## 常见问题
 

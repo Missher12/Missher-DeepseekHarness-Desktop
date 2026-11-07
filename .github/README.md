@@ -38,8 +38,16 @@
 - 这是 Missher 社区构建，非 DeepSeek 官方发行版；应用不附带模型账户或 API 额度。
 - 各版本实际提供的平台、签名与验证范围，以该 Release 的资产和说明为准。
 
+## 常用项目
+
+| 项目 | 入口 |
+| --- | --- |
+| 当前记忆系统 | [Memory Native](https://github.com/Missher12/Missher-DSH-Memory-Native) |
+| 当前媒体采集 | [Media-Missher-Ego](https://github.com/Missher12/Media-Missher-Ego)（私有） |
+| 日常插件与可选扩展 | [完整插件目录](../plugins/README.zh.md) |
+
 ## 详细文档
 
-[完整中文说明](../README.zh.md) · [项目原说明](../README.md) · [独立插件目录](../plugins/README.zh.md) · [中文原说明](../README.zh.md) · [许可证](../LICENSE)
+[完整中文说明](../README.zh.md) · [项目原说明](../README.md) · [独立插件目录](../plugins/README.zh.md) · [许可证](../LICENSE)
 
 原有功能细节、配置、截图与验证记录保留在上述文档中，历史结论按其注明的版本理解。

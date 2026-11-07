@@ -28,9 +28,9 @@ Choose **Intel Mac** for a Mac with an Intel processor, and **Ubuntu x64** for a
 | **Ubuntu x64** | [DEB 安装包（推荐）](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2.20261014.1/deepseek-harness-0.2.1-alpha.2.20261014.1-linux-x64-unsigned.deb) · [Release notes / 版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) | Ubuntu 24.04 x64 |
 | **Ubuntu x64, portable** | [AppImage](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2.20261014.1/deepseek-harness-0.2.1-alpha.2.20261014.1-linux-x64-unsigned.AppImage) | Built; separate AppImage launch not qualified |
 
-The current community release is **0.2.1-alpha.2.20261014.1**, published through the regular Release channel and based on official 0.2.1-alpha.2, with the Missher extensions for archived-session deletion, model-row settings and Context local.9. The [seven-plugin set and exact package list](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) preserves the versions from that Desktop release. For later plugin updates, use the “Latest release” links in the [plugin directory](plugins/README.md). The set excludes Media, independent Obsidian and the paused Computer Browser plugin.
+Find current Desktop installers in [Releases](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases). The table above and the [seven-plugin set](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) retain historical downloads for **0.2.1-alpha.2.20261014.1**; use the independent projects in the [plugin directory](plugins/README.md) for current plugin updates.
 
-The Ubuntu DEB has passed installation and desktop startup checks. The Intel Mac DMG has passed native packaging, integrity, isolated workspace and actual renderer checks. [Verification details](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) describe the exact scope; these checks do not qualify every model or plugin workflow. Desktop and plugin packages must each be installed on the target computer.
+For that historical release, the Ubuntu DEB has passed installation and desktop startup checks. The Intel Mac DMG has passed native packaging, integrity, isolated workspace and actual renderer checks. [Verification details](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) describe the exact scope; these checks do not qualify every model or plugin workflow. Desktop and plugin packages must each be installed on the target computer.
 
 Each release includes SHA-256 checksums and its validation scope. [All releases](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases) retain earlier packages. A source ZIP under **Code** is a source snapshot, not an installer. Linux x64 uses the published update feed; downloads and installation require separate user actions, with downgrades disabled. The installed DEB and a same-version update check were verified; cross-version automatic installation was not exercised. The unsigned Intel Mac package uses manual DMG installation.
 
@@ -57,27 +57,20 @@ Launch **DeepSeek Harness** from the application menu. The DEB package was insta
 1. Choose a project folder as your workspace. If the system Documents directory is unavailable, select a folder manually.
 2. Open model settings, add your provider, endpoint, API key and model name. Model support determines text/image input and reasoning levels.
 3. Start a small conversation to verify your provider. API usage may be charged by that provider.
-4. Extract the matching plugin ZIP and use **Plugins → Add plugin** for the `.tgz` files you need. Follow the plugin's installation guide to replace an existing version, and finish active tasks before restarting. Compare the installed and active versions with the selected release manifest. Desktop installers do not automatically install personal plugins.
+4. Choose plugins from the [directory](plugins/README.md) and follow each project's installation guide. Finish active tasks before reloading or restarting as requested by the Host; compare installed and loaded versions in the active profile. Desktop installers do not automatically install personal plugins.
 
 ## Plugins / 独立插件
 
-Bookmark this repository as the common entry point. Each name below opens its own GitHub repository; the [complete directory](plugins/README.md) explains where to use it, which projects are private, and which work is paused. The [source version table](plugins/README.md#current-source-snapshots) lists maintained versions and branches. Follow the [installation guide](docs/cookbook/install-cordis-plugins.md) for DSH plugins; independent Obsidian installs in Obsidian.
+The [plugin directory](plugins/README.md) groups everyday plugins, optional extensions and legacy projects. Each project's own documentation maintains its installation and version requirements.
 
-| Plugin | What it does |
+| Entry | Purpose |
 | --- | --- |
-| [Context Manager](https://github.com/Missher12/Missher-DSH-Context-Manager) | Inspect and compact the current conversation context |
-| [Usage Statistics](https://github.com/Missher12/Missher-DSH-Usage-Statistics) | Activity and usage across conversations |
-| [Output Renderer](https://github.com/Missher12/Missher-DSH-Output-Renderer) | Four reading layouts, spacing and streaming effects |
-| [Session Bridge](https://github.com/Missher12/Missher-DSH-Session-Bridge) | Session IDs, message delivery, temporary workspaces and permanent deletion of archived sessions |
-| [Reasoning Effort](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) | Reasoning slider and model capability settings |
-| [Project Ops](https://github.com/Missher12/Missher-DSH-Project-Ops) | Project tasks, development plans in PLAN.md and delivery records in READY.md |
-| [MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) | Standing corrections and failure lessons with global or project scope, plus daily consolidation; product code only, without personal learning data |
-| [DSH Memory TDAI](https://github.com/Missher12/Missher-DSH-Memory-TDAI) | Profile-wide memory, source-linked recall and optional character and communication preferences |
-| [Computer Browser](https://github.com/Missher12/Missher-DSH-Computer-Browser) | Browser and computer controls; development is paused, and current native workflows are not accepted |
-| [Media (private)](https://github.com/Missher12/Missher-Media) | Chrome CDP collection and selected exports |
-| [Independent Obsidian Memory](https://github.com/Missher12/Missher-Obsidian-Memory) | Notes, memory and review inside Obsidian; separate from the retired DSH Obsidian bundle |
+| [Memory Native](https://github.com/Missher12/Missher-DSH-Memory-Native) | Current memory system |
+| [Media@Missher Ego](https://github.com/Missher12/Media-Missher-Ego) | Current private media entry |
+| [DSH plugin directory](plugins/README.md) | Context, statistics, output appearance, Session Bridge, Reasoning Effort, Project Ops, Superagent and MSE |
+| [Independent Obsidian Memory](https://github.com/Missher12/Missher-Obsidian-Memory) | Separate memory project installed in Obsidian |
 
-Media alone remains in a private repository; independent Obsidian Memory is open source under MIT. Personal Vaults, notes and learning records remain private. All plugins are optional. See the [release and compatibility policy](plugins/README.md#release-and-version-compatibility) for support across Host versions.
+Plugins release and install separately. Private projects require repository access; personal settings, sessions, memory and learning data remain in their respective runtime environments.
 
 ## Common questions
 

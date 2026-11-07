@@ -3,32 +3,23 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write plugins/README.md
 /dsh-plugin-directory:
-  en: 25e370e5b592147e
-  zh: a01c109f547c5364
-/dsh-plugin-directory/public-plugins:
-  en: 75cc56d6cb68fadf
-  zh: d62a8f1511124a6a
-/dsh-plugin-directory/current-source-snapshots:
-  en: 3101b0da1dc61a10
-  zh: 7427863eeb509bae
-/dsh-plugin-directory/plugin-previews:
-  en: d64ec9408c6db999
-  zh: 507c5223a01b14c1
-/dsh-plugin-directory/private-and-independent-projects:
-  en: e87039bb4a0f854a
-  zh: 47a0f9b9e735f226
-/dsh-plugin-directory/release-and-version-compatibility:
-  en: d40f15023e82b00d
-  zh: 41aa601dab0c52dd
-/dsh-plugin-directory/confirm-an-update:
-  en: c11925ce6fddc004
-  zh: 8e246870d97912ca
-/dsh-plugin-directory/choose-the-right-owner:
-  en: bc73826f92f87dda
-  zh: 690c357235f3df7d
-/dsh-plugin-directory/separate-projects:
-  en: 122e2118981cb5df
-  zh: ee47c5dcf84714de
-/dsh-plugin-directory/next-steps:
-  en: 89f66ee606c2cfb4
-  zh: 5e48b8940dec5865
+  en: 2a42feb678dc820f
+  zh: bb16b4da82153077
+/dsh-plugin-directory/everyday-plugins:
+  en: 8c39d29b7c209c70
+  zh: 0132a2e68207a978
+/dsh-plugin-directory/media-missher:
+  en: fc0cc99ddb14aba6
+  zh: 6b2d8393a1f10292
+/dsh-plugin-directory/optional-extensions:
+  en: c0b6c92c1a12f8f4
+  zh: 72bd61aca7c36626
+/dsh-plugin-directory/legacy-and-paused-projects:
+  en: 987fbb70aa25c462
+  zh: 8e3e813f24d5a64b
+/dsh-plugin-directory/independent-obsidian-project:
+  en: 53cff0391e4772a3
+  zh: 15a8c661cee79a26
+/dsh-plugin-directory/versions-and-installation:
+  en: ec9f39859780373c
+  zh: 05f35b6420ba095b
