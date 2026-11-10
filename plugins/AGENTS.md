@@ -5,3 +5,5 @@
 当前记忆系统使用 `Missher12/Missher-DSH-Memory-Native`，Media 使用 `Missher12/Media-Missher-Ego`。当前仅 Media-Missher-Ego 保持私有；当前插件与平台专用扩展按插件目录维护，废弃插件不再列为安装入口。
 
 保留各插件自己的构建、配置、安装、卸载和历史，不引入共同兼容包。禁止提交凭据、真实聊天、附件、记忆库、学习记录、采集数据、生产 profile 或安装备份。源码发布不等于已更新日常应用。
+
+推荐整套安装使用 `install-set.json`，只列有已发布可安装包的公开插件；Media@Missher Ego 不加入公开安装套件。交付新版本时同步包名、版本、Release 标签与下载地址，保留当前 Memory Native 的正确发行分支与安装包身份。

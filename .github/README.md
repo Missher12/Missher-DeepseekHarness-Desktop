@@ -2,7 +2,7 @@
 
 <h1>Missher DeepSeek Harness · 社区桌面端</h1>
 
-<p><img src="../docs/images/overview.svg" alt="DeepSeek Harness 功能示意" width="100%"></p>
+<p><img src="../docs/images/plugins-cover.png" alt="DSH 推荐插件 · 品牌插画" width="100%"></p>
 
 <p>在一个桌面工作区里使用模型、文件、工具与可选插件。</p>
 
@@ -17,6 +17,19 @@
 </div>
 
 ---
+
+## 推荐插件，一次装齐
+
+共 **13 个独立插件**，其中 **12 个公开插件可在一个 Agent 会话中安装**。私有的 Media@Missher Ego 单独处理，记忆系统使用 Memory Native。
+
+```text
+读取本仓库 plugins/install-set.json，将其中全部 12 个公开插件安装或更新到我当前使用的 DSH。
+使用清单中的 Release 安装包，保留原插件实例、配置和数据；已安装同版或更新版的保留。
+优先使用宿主原生插件管理接口，核对宿主兼容性，逐项报告实际安装版本与加载状态。
+排除私有的 Media@Missher Ego；缺少能力、失败和待重启的项目单独说明。
+```
+
+[查看 12 个推荐插件与完整安装指令](../plugins/README.zh.md#install-recommended-plugins) · [公开安装清单](../plugins/install-set.json)
 
 ## 功能一览
 
@@ -66,7 +79,7 @@
 | 授权范围内的五平台媒体采集 | [Media-Missher-Ego](https://github.com/Missher12/Media-Missher-Ego)（私有） |
 | Windows/macOS shell、文件与办公操作 | [Guard](https://github.com/Missher12/Guard) |
 
-[完整插件目录](../plugins/README.zh.md) · [机器可读清单](../plugins/catalog.json) · [交给 Agent 批量下载](../plugins/README.zh.md#download-all-plugins-with-an-agent)
+[完整插件目录](../plugins/README.zh.md) · [机器可读清单](../plugins/catalog.json) · [交给 Agent 安装整套公开插件](../plugins/README.zh.md#install-recommended-plugins)
 
 <!-- readme-expansion -->
 ## 使用场景

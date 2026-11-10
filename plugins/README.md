@@ -4,13 +4,31 @@ English | [中文](README.zh.md)
 
 [Repository home](../README.md) · [Installation](../docs/cookbook/install-cordis-plugins.md) · [Development](../docs/cookbook/build-cordis-plugins.md)
 
-![DSH workspace, tools and independent plugins](../docs/images/overview.svg)
+![DSH recommended plugins · brand illustration](../docs/images/plugins-cover.png)
 
-Choose independent plugins as needed. Memory Native is the current memory system, and Media-Missher-Ego is the media entry. Each project owns its source, releases, settings and installation.
+There are **13 independent plugins: 12 public and 1 private**. The recommended set includes all 12 public plugins; private Media@Missher Ego is installed separately. Use Memory Native for the current memory system.
+
+<a id="install-recommended-plugins"></a>
+
+## Install the recommended set in one agent chat
+
+Give an agent the main repository URL and the prompt below. The [public install manifest](install-set.json) lists published Release `.tgz` packages for all 12 public plugins. Existing plugin instances, settings and data are preserved.
+
+```text
+Read https://github.com/Missher12/Missher-DeepseekHarness-Desktop/blob/main/plugins/install-set.json.
+Install or update all 12 public plugins in my current DSH installation in this chat.
+Use the listed Release packages. Check package names, versions and Host compatibility; use the specified native Memory release.
+Prefer the Host's native plugin manager and update existing instances while preserving settings, sessions, memory and learning data.
+Keep the same or newer installed versions without reinstalling or downgrading. Exclude private Media@Missher Ego.
+Load updates as the Host requires without force-quitting an active application.
+Report each installed version, enabled and loaded state, and any failure, missing capability or pending restart.
+```
+
+The table below describes each plugin. Guard supports Windows and macOS; its runtime is skipped on Linux hosts.
 
 <a id="public-plugins"></a>
 
-## Everyday plugins
+## Recommended plugins (12 public)
 
 | Plugin | Purpose | Repository |
 | --- | --- | --- |
@@ -25,16 +43,11 @@ Choose independent plugins as needed. Memory Native is the current memory system
 | [Focus](https://github.com/Missher12/Missher-DSH-Focus) | Research, writing, data, files and app tasks, with dedicated development workflows | Public |
 | [Dashboard](https://github.com/Missher12/Missher-DSH-Dashboard) | Session status, Token trends, goals and Superagent overview | Public |
 | [MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) | Standing corrections, failure lessons and learning consolidation | Public |
+| [Guard](https://github.com/Missher12/Guard) | Windows/macOS shell checks, reliable file batches and Office document operations | Public; Windows and macOS |
 
 ## Media@Missher
 
 [Media-Missher-Ego](https://github.com/Missher12/Media-Missher-Ego) is the current media entry and remains private. It uses ego lite for Bilibili, Xiaohongshu, Douyin, Weibo and X, with incremental consolidation, resumable runs, historical comparisons and local exports. Its delivery notes own DSH integration and installation instructions.
-
-## Optional extensions
-
-| Project | Purpose | Repository |
-| --- | --- | --- |
-| [Guard](https://github.com/Missher12/Guard) | Windows/macOS shell checks, reliable file batches and Office document operations | Public; Windows and macOS |
 
 ## Community directory
 
@@ -47,13 +60,13 @@ Choose independent plugins as needed. Memory Native is the current memory system
 
 <a id="download-all-plugins-with-an-agent"></a>
 
-### Download all plugins with an agent
+### Download source repositories only
 
 The [machine-readable catalog](catalog.json) lists 13 independent Missher plugins, including 12 public repositories and 1 private repository. The desktop host and community directory are separate projects. Guard 0.4.0 supports Windows and macOS; Linux and Linux-hosted WSL are skipped. Follow its Host and Node requirements.
 
 Give an agent this repository URL and ask: “Read `plugins/catalog.json`. Clone every listed plugin into a new directory using its `sourceRef`, and report the downloaded branch and commit. Keep existing installations, settings and data. List any repository that cannot be accessed; do not report a partial download as complete.” The agent needs Git; Media-Missher-Ego additionally requires repository access.
 
-This downloads source repositories. For an installable package, follow the corresponding project's build or Release instructions; a newer development branch does not imply a matching Release asset exists. The catalog names branches rather than fixed versions, so read each downloaded `package.json` for its actual version.
+This prompt downloads source only. Use the [recommended install entry](#install-recommended-plugins) above to install the full set. For an installable package, follow the corresponding project's build or Release instructions; a newer development branch does not imply a matching Release asset exists. The catalog names branches rather than fixed versions, so read each downloaded `package.json` for its actual version.
 
 Choose versions from each project’s release records and installation guide. Development branches, released packages and the loaded version in the current application are separate records; source updates do not replace plugins in daily DSH automatically. Each project documents minimum Host capabilities, verified targets and limitations.
 
