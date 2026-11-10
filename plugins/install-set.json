@@ -31,11 +31,11 @@
     {
       "id": "@missher/dsh-superagent",
       "name": "Missher-DSH-Superagent",
-      "version": "1.3.3",
+      "version": "1.4.3",
       "repository": "https://github.com/Missher12/Missher-DSH-Superagent",
-      "releaseTag": "v1.3.3",
-      "release": "https://github.com/Missher12/Missher-DSH-Superagent/releases/tag/v1.3.3",
-      "download": "https://github.com/Missher12/Missher-DSH-Superagent/releases/download/v1.3.3/missher-dsh-superagent-1.3.3.tgz"
+      "releaseTag": "v1.4.3",
+      "release": "https://github.com/Missher12/Missher-DSH-Superagent/releases/tag/v1.4.3",
+      "download": "https://github.com/Missher12/Missher-DSH-Superagent/releases/download/v1.4.3/missher-dsh-superagent-1.4.3.tgz"
     },
     {
       "id": "@missher/dsh-output-renderer",

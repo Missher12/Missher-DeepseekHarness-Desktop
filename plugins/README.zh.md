@@ -27,6 +27,25 @@
 
 可在下表先了解各插件用途。Guard 支持 Windows 与 macOS；Linux 宿主会跳过它的运行功能。
 
+<!-- plugin-visual-guide -->
+## 看图选择插件
+
+![12 个公开插件：记忆、会话、执行与观察的分工](../docs/images/plugin-map.svg)
+
+上图按用途分组，不表示插件之间存在运行依赖。私有 Media@Missher Ego 单独安装。第一次使用可以先从当前任务需要的功能入手，再逐步调整其他设置。
+
+| 想完成的事 | 从哪里开始 | 接着看什么 |
+| --- | --- | --- |
+| 长会话继续开发，同时保留跨会话背景 | Context Manager 整理本轮历史，Memory Native 管理长期事实与来源 | 展开摘要或记忆原句，确认目标、范围与当前事实 |
+| 把明确任务交给独立会话 | Superagent 选真实工作区并派单，Focus 提供按需工作方法 | 看成员活动和结果，再用 Project Ops 定位实际交付文件 |
+| 处理文件并核对执行情况 | Guard 先检查执行器、目录和输入清单 | 核对逐项回执，保留失败与未解决项 |
+| 改善阅读并了解使用情况 | Output Renderer 调布局，Reasoning Effort 选模型支持档位 | Usage Statistics 看长期活动，Dashboard 定位需关注会话 |
+
+例如：“交给 Superagent 只读分析当前项目，列出入口和依据，不改文件。”任务完成后，回到真实会话核对结论，用 Project Ops 打开实际产物。插件各司其职，工作台状态和图表颜色不能单独代替任务验收。
+
+下方每个插件的仓库首页都有“图解使用流程”，包含操作步骤、具体示例、结果检查点与设置建议。流程图和场景插画明确标为示意；已有界面截图保留版本说明。
+<!-- /plugin-visual-guide -->
+
 <a id="public-plugins"></a>
 
 ## 推荐插件（12 个公开）
@@ -63,7 +82,7 @@
 
 ### 只下载全部源码
 
-[机器可读清单](catalog.json)列出 13 个独立 Missher 插件，其中 12 个公开、1 个私有。桌面宿主和社区目录是另外两个项目。Guard 0.4.0 支持 Windows 和 macOS；Linux 与 WSL 内的 Linux 宿主会跳过。安装前按其说明核对宿主和 Node 版本。
+[机器可读清单](catalog.json)列出 13 个独立 Missher 插件，其中 12 个公开、1 个私有。桌面宿主和社区目录是另外两个项目。Guard 支持 Windows 和 macOS；Linux 与 WSL 内的 Linux 宿主会跳过。安装前按其说明核对宿主和 Node 版本。
 
 把本仓库链接交给 Agent，可以直接说：“读取 `plugins/catalog.json`，按各项的 `sourceRef` 将全部插件克隆到一个新目录，报告下载的分支与提交。保留已有安装、配置和数据；无法访问的仓库单独列出，不能把部分下载说成全部完成。”Agent 需要 Git；下载 Media-Missher-Ego 还需要仓库访问权限。
 

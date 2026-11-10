@@ -32,6 +32,25 @@ Memory 沿用当前原生发行系列；保留原插件实例、配置和数据�
 
 [查看 12 个推荐插件与完整安装指令](../plugins/README.zh.md#install-recommended-plugins) · [公开安装清单](../plugins/install-set.json)
 
+<!-- plugin-visual-guide -->
+## 看图选择插件
+
+![12 个公开插件：记忆、会话、执行与观察的分工](../docs/images/plugin-map.svg)
+
+上图按用途分组，不表示插件之间存在运行依赖。私有 Media@Missher Ego 单独安装。第一次使用可以先从当前任务需要的功能入手，再逐步调整其他设置。
+
+| 想完成的事 | 从哪里开始 | 接着看什么 |
+| --- | --- | --- |
+| 长会话继续开发，同时保留跨会话背景 | Context Manager 整理本轮历史，Memory Native 管理长期事实与来源 | 展开摘要或记忆原句，确认目标、范围与当前事实 |
+| 把明确任务交给独立会话 | Superagent 选真实工作区并派单，Focus 提供按需工作方法 | 看成员活动和结果，再用 Project Ops 定位实际交付文件 |
+| 处理文件并核对执行情况 | Guard 先检查执行器、目录和输入清单 | 核对逐项回执，保留失败与未解决项 |
+| 改善阅读并了解使用情况 | Output Renderer 调布局，Reasoning Effort 选模型支持档位 | Usage Statistics 看长期活动，Dashboard 定位需关注会话 |
+
+例如：“交给 Superagent 只读分析当前项目，列出入口和依据，不改文件。”任务完成后，回到真实会话核对结论，用 Project Ops 打开实际产物。插件各司其职，工作台状态和图表颜色不能单独代替任务验收。
+
+[完整插件目录](../plugins/README.zh.md)中每个插件的仓库首页都有“图解使用流程”，包含操作步骤、具体示例、结果检查点与设置建议。流程图和场景插画明确标为示意；已有界面截图保留版本说明。
+<!-- /plugin-visual-guide -->
+
 ## 功能一览
 
 | 能做什么 | 说明 |

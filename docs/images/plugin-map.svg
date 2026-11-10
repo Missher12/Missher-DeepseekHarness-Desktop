@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="875" viewBox="0 0 1200 875" role="img" aria-labelledby="title description">
+<title id="title">12 个公开插件 · 按用途选择</title>
+<desc id="description">按用途分组，不代表运行依赖；私有 Media 单独安装。</desc>
+<defs><linearGradient id="background" x2="1" y2="1"><stop stop-color="#faf8f5"/><stop offset="1" stop-color="#f3f0fa"/></linearGradient></defs>
+<style>text{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;fill:#272433}.title{font-size:42px;font-weight:650}.subtitle{font-size:23px;fill:#6c6678}.step{font-size:27px;font-weight:600}.body{font-size:21px;fill:#625d6d}.number{font-size:22px;font-weight:600;fill:#746294}.label{font-size:19px;fill:#827790}.group{font-size:28px;font-weight:600}.item{font-size:25px;fill:#474252}</style>
+<rect width="1200" height="875" rx="24" fill="url(#background)"/>
+
+<text x="44" y="70" class="title" >12 个公开插件 · 按用途选择</text>
+<text x="44" y="116" class="subtitle" >按用途分组，不代表运行依赖；私有 Media 单独安装。</text>
+<rect x="44" y="160" width="542" height="300" rx="20" fill="#fff" stroke="#e0dae9"/>
+<text x="70" y="205" class="group" >记忆与经验</text>
+<path d="M70 225h490" stroke="#eee9f3"/>
+<circle cx="74" cy="258" r="4" fill="#a18bbd"/>
+<text x="90" y="265" class="item" >Memory Native</text>
+<text x="312" y="265" class="label" >事实、偏好与来源</text>
+<circle cx="74" cy="310" r="4" fill="#a18bbd"/>
+<text x="90" y="317" class="item" >MSE Learning</text>
+<text x="312" y="317" class="label" >长期纠正与失败经验</text>
+<rect x="614" y="160" width="542" height="300" rx="20" fill="#fff" stroke="#e0dae9"/>
+<text x="640" y="205" class="group" >会话与上下文</text>
+<path d="M640 225h490" stroke="#eee9f3"/>
+<circle cx="644" cy="258" r="4" fill="#a18bbd"/>
+<text x="660" y="265" class="item" >Context Manager</text>
+<text x="882" y="265" class="label" >整理当前长会话</text>
+<circle cx="644" cy="310" r="4" fill="#a18bbd"/>
+<text x="660" y="317" class="item" >Session Bridge</text>
+<text x="882" y="317" class="label" >定位、读取与投递</text>
+<rect x="44" y="490" width="542" height="300" rx="20" fill="#fff" stroke="#e0dae9"/>
+<text x="70" y="535" class="group" >任务与执行</text>
+<path d="M70 555h490" stroke="#eee9f3"/>
+<circle cx="74" cy="588" r="4" fill="#a18bbd"/>
+<text x="90" y="595" class="item" >Focus</text>
+<text x="312" y="595" class="label" >按需选择工作方法</text>
+<circle cx="74" cy="640" r="4" fill="#a18bbd"/>
+<text x="90" y="647" class="item" >Superagent</text>
+<text x="312" y="647" class="label" >独立派单与跟进</text>
+<circle cx="74" cy="692" r="4" fill="#a18bbd"/>
+<text x="90" y="699" class="item" >Project Ops</text>
+<text x="312" y="699" class="label" >文件预览与交付定位</text>
+<circle cx="74" cy="744" r="4" fill="#a18bbd"/>
+<text x="90" y="751" class="item" >Guard</text>
+<text x="312" y="751" class="label" >执行预检与逐项回执</text>
+<rect x="614" y="490" width="542" height="300" rx="20" fill="#fff" stroke="#e0dae9"/>
+<text x="640" y="535" class="group" >阅读与观察</text>
+<path d="M640 555h490" stroke="#eee9f3"/>
+<circle cx="644" cy="588" r="4" fill="#a18bbd"/>
+<text x="660" y="595" class="item" >Output Renderer</text>
+<text x="882" y="595" class="label" >回复布局与阅读密度</text>
+<circle cx="644" cy="640" r="4" fill="#a18bbd"/>
+<text x="660" y="647" class="item" >Reasoning Effort</text>
+<text x="882" y="647" class="label" >模型支持的思考档位</text>
+<circle cx="644" cy="692" r="4" fill="#a18bbd"/>
+<text x="660" y="699" class="item" >Usage Statistics</text>
+<text x="882" y="699" class="label" >长期活动与用量</text>
+<circle cx="644" cy="744" r="4" fill="#a18bbd"/>
+<text x="660" y="751" class="item" >Dashboard</text>
+<text x="882" y="751" class="label" >状态、趋势与会话入口</text>
+<text x="44" y="843" class="label" >先确定任务，再按各插件图解和安装说明使用。可以组合使用，不要求一次启用所有功能。</text>
+</svg>
