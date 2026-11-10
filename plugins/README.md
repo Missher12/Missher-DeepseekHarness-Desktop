@@ -17,7 +17,8 @@ Give an agent the main repository URL and the prompt below. The [public install 
 ```text
 Read https://github.com/Missher12/Missher-DeepseekHarness-Desktop/blob/main/plugins/install-set.json.
 Install or update all 12 public plugins in my current DSH installation in this chat.
-Use the listed Release packages. Check package names, versions and Host compatibility; use the specified native Memory release.
+Check each repository for newer published Releases with a matching `.tgz`; prefer a newer Host-compatible release,
+otherwise use the verified package listed. Check package identities and versions; keep Memory on its current native release line.
 Prefer the Host's native plugin manager and update existing instances while preserving settings, sessions, memory and learning data.
 Keep the same or newer installed versions without reinstalling or downgrading. Exclude private Media@Missher Ego.
 Load updates as the Host requires without force-quitting an active application.

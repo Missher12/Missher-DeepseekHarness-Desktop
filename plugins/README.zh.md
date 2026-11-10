@@ -17,7 +17,8 @@
 ```text
 请读取 https://github.com/Missher12/Missher-DeepseekHarness-Desktop/blob/main/plugins/install-set.json，
 在我当前使用的 DSH 中，一次完成清单内全部 12 个公开插件的安装或更新。
-使用清单中的 Release 安装包，核对包名、版本和当前宿主兼容性；Memory 使用清单指定的原生版。
+先查询各仓库最新已发布的 Release；有兼容新版且包含正确包名的 `.tgz` 时优先使用新版，
+否则使用清单中已核对的安装包。核对包名、版本和宿主兼容性；Memory 沿用当前原生发行系列。
 优先使用宿主原生插件管理接口，在原插件实例上更新，保留配置、会话、记忆和学习数据。
 已安装同版或更新版本的插件保留，不重复安装或降级；不要安装私有的 Media@Missher Ego。
 按宿主要求加载更新，不强退正在工作的应用。完成后逐项列出安装版本、启用及加载状态；
