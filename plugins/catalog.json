@@ -75,7 +75,7 @@
     },
     {
       "id": "dsh-windows-guard",
-      "repository": "https://github.com/Missher12/dsh-windows-guard",
+      "repository": "https://github.com/Missher12/Guard",
       "sourceRef": "main",
       "visibility": "public",
       "platforms": [

@@ -34,7 +34,7 @@
 
 | 项目 | 用途 | 仓库 |
 | --- | --- | --- |
-| [Windows Guard](https://github.com/Missher12/dsh-windows-guard) | Windows/macOS shell 检查、可靠文件批处理与办公文档操作 | 公开；Windows 和 macOS |
+| [Guard](https://github.com/Missher12/Guard) | Windows/macOS shell 检查、可靠文件批处理与办公文档操作 | 公开；Windows 和 macOS |
 
 ## 社区插件目录
 
@@ -49,7 +49,7 @@
 
 ### 交给 Agent 下载全部插件
 
-[机器可读清单](catalog.json)列出 13 个独立 Missher 插件，其中 12 个公开、1 个私有。桌面宿主和社区目录是另外两个项目。Windows Guard 0.4.0 支持 Windows 和 macOS；Linux 与 WSL 内的 Linux 宿主会跳过。安装前按其说明核对宿主和 Node 版本。
+[机器可读清单](catalog.json)列出 13 个独立 Missher 插件，其中 12 个公开、1 个私有。桌面宿主和社区目录是另外两个项目。Guard 0.4.0 支持 Windows 和 macOS；Linux 与 WSL 内的 Linux 宿主会跳过。安装前按其说明核对宿主和 Node 版本。
 
 把本仓库链接交给 Agent，可以直接说：“读取 `plugins/catalog.json`，按各项的 `sourceRef` 将全部插件克隆到一个新目录，报告下载的分支与提交。保留已有安装、配置和数据；无法访问的仓库单独列出，不能把部分下载说成全部完成。”Agent 需要 Git；下载 Media-Missher-Ego 还需要仓库访问权限。
 

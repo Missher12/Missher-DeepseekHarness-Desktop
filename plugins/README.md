@@ -34,7 +34,7 @@ Choose independent plugins as needed. Memory Native is the current memory system
 
 | Project | Purpose | Repository |
 | --- | --- | --- |
-| [Windows Guard](https://github.com/Missher12/dsh-windows-guard) | Windows/macOS shell checks, reliable file batches and Office document operations | Public; Windows and macOS |
+| [Guard](https://github.com/Missher12/Guard) | Windows/macOS shell checks, reliable file batches and Office document operations | Public; Windows and macOS |
 
 ## Community directory
 
@@ -49,7 +49,7 @@ Choose independent plugins as needed. Memory Native is the current memory system
 
 ### Download all plugins with an agent
 
-The [machine-readable catalog](catalog.json) lists 13 independent Missher plugins, including 12 public repositories and 1 private repository. The desktop host and community directory are separate projects. Windows Guard 0.4.0 supports Windows and macOS; Linux and Linux-hosted WSL are skipped. Follow its Host and Node requirements.
+The [machine-readable catalog](catalog.json) lists 13 independent Missher plugins, including 12 public repositories and 1 private repository. The desktop host and community directory are separate projects. Guard 0.4.0 supports Windows and macOS; Linux and Linux-hosted WSL are skipped. Follow its Host and Node requirements.
 
 Give an agent this repository URL and ask: “Read `plugins/catalog.json`. Clone every listed plugin into a new directory using its `sourceRef`, and report the downloaded branch and commit. Keep existing installations, settings and data. List any repository that cannot be accessed; do not report a partial download as complete.” The agent needs Git; Media-Missher-Ego additionally requires repository access.
 

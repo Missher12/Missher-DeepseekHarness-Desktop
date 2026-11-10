@@ -64,7 +64,7 @@
 | 会话状态、项目进度与工作图表 | [工作仪表盘](https://github.com/Missher12/Missher-DSH-Dashboard) |
 | 长期纠正与具体失败经验 | [MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) |
 | 授权范围内的五平台媒体采集 | [Media-Missher-Ego](https://github.com/Missher12/Media-Missher-Ego)（私有） |
-| Windows/macOS shell、文件与办公操作 | [Windows Guard](https://github.com/Missher12/dsh-windows-guard) |
+| Windows/macOS shell、文件与办公操作 | [Guard](https://github.com/Missher12/Guard) |
 
 [完整插件目录](../plugins/README.zh.md) · [机器可读清单](../plugins/catalog.json) · [交给 Agent 批量下载](../plugins/README.zh.md#download-all-plugins-with-an-agent)
 
