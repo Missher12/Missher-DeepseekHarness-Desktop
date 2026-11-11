@@ -361,7 +361,7 @@ jobs:
 
       - name: Upload the native reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: windows-acl-native-redirect
           # Allowlisted JSON/text only: mode reports, pwsh evidence, FullControl
