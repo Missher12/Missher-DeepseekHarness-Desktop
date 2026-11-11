@@ -4,11 +4,11 @@
     {
       "id": "@missher/dsh-context-manager",
       "name": "Missher-DSH-Context-Manager",
-      "version": "1.0.4",
+      "version": "1.0.6",
       "repository": "https://github.com/Missher12/Missher-DSH-Context-Manager",
-      "releaseTag": "v1.0.4",
-      "release": "https://github.com/Missher12/Missher-DSH-Context-Manager/releases/tag/v1.0.4",
-      "download": "https://github.com/Missher12/Missher-DSH-Context-Manager/releases/download/v1.0.4/missher-dsh-context-manager-1.0.4.tgz"
+      "releaseTag": "v1.0.6",
+      "release": "https://github.com/Missher12/Missher-DSH-Context-Manager/releases/tag/v1.0.6",
+      "download": "https://github.com/Missher12/Missher-DSH-Context-Manager/releases/download/v1.0.6/missher-dsh-context-manager-1.0.6.tgz"
     },
     {
       "id": "@missher/dsh-usage-statistics",
@@ -22,20 +22,20 @@
     {
       "id": "@missher/dsh-session-bridge",
       "name": "Missher-DSH-Session-Bridge",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "repository": "https://github.com/Missher12/Missher-DSH-Session-Bridge",
-      "releaseTag": "v1.0.3",
-      "release": "https://github.com/Missher12/Missher-DSH-Session-Bridge/releases/tag/v1.0.3",
-      "download": "https://github.com/Missher12/Missher-DSH-Session-Bridge/releases/download/v1.0.3/missher-dsh-session-bridge-1.0.3.tgz"
+      "releaseTag": "v1.0.4",
+      "release": "https://github.com/Missher12/Missher-DSH-Session-Bridge/releases/tag/v1.0.4",
+      "download": "https://github.com/Missher12/Missher-DSH-Session-Bridge/releases/download/v1.0.4/missher-dsh-session-bridge-1.0.4.tgz"
     },
     {
       "id": "@missher/dsh-superagent",
       "name": "Missher-DSH-Superagent",
-      "version": "1.4.3",
+      "version": "1.8.7",
       "repository": "https://github.com/Missher12/Missher-DSH-Superagent",
-      "releaseTag": "v1.4.3",
-      "release": "https://github.com/Missher12/Missher-DSH-Superagent/releases/tag/v1.4.3",
-      "download": "https://github.com/Missher12/Missher-DSH-Superagent/releases/download/v1.4.3/missher-dsh-superagent-1.4.3.tgz"
+      "releaseTag": "v1.8.7",
+      "release": "https://github.com/Missher12/Missher-DSH-Superagent/releases/tag/v1.8.7",
+      "download": "https://github.com/Missher12/Missher-DSH-Superagent/releases/download/v1.8.7/missher-dsh-superagent-1.8.7.tgz"
     },
     {
       "id": "@missher/dsh-output-renderer",
@@ -76,11 +76,11 @@
     {
       "id": "@missher/dsh-memory",
       "name": "Missher-DSH-Memory-Native",
-      "version": "1.4.0-native.20261110.1",
+      "version": "1.5.0-native.20261110.0",
       "repository": "https://github.com/Missher12/Missher-DSH-Memory-Native",
-      "releaseTag": "v1.4.0-native.20261110.1",
-      "release": "https://github.com/Missher12/Missher-DSH-Memory-Native/releases/tag/v1.4.0-native.20261110.1",
-      "download": "https://github.com/Missher12/Missher-DSH-Memory-Native/releases/download/v1.4.0-native.20261110.1/dsh-memory-1.4.0-native.20261110.1.tgz"
+      "releaseTag": "v1.5.0-native.20261110.0",
+      "release": "https://github.com/Missher12/Missher-DSH-Memory-Native/releases/tag/v1.5.0-native.20261110.0",
+      "download": "https://github.com/Missher12/Missher-DSH-Memory-Native/releases/download/v1.5.0-native.20261110.0/dsh-memory-1.5.0-native.20261110.0.tgz"
     },
     {
       "id": "@missher/dsh-dashboard",
@@ -94,11 +94,11 @@
     {
       "id": "@missher/dsh-mse-learning",
       "name": "Missher-MSE-Learning",
-      "version": "1.2.2",
+      "version": "1.3.2",
       "repository": "https://github.com/Missher12/Missher-MSE-Learning",
-      "releaseTag": "v1.2.2",
-      "release": "https://github.com/Missher12/Missher-MSE-Learning/releases/tag/v1.2.2",
-      "download": "https://github.com/Missher12/Missher-MSE-Learning/releases/download/v1.2.2/missher-dsh-mse-learning-1.2.2.tgz"
+      "releaseTag": "v1.3.2",
+      "release": "https://github.com/Missher12/Missher-MSE-Learning/releases/tag/v1.3.2",
+      "download": "https://github.com/Missher12/Missher-MSE-Learning/releases/download/v1.3.2/missher-dsh-mse-learning-1.3.2.tgz"
     },
     {
       "id": "dsh-windows-guard",
