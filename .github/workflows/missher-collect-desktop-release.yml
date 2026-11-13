@@ -27,6 +27,6 @@ jobs:
       SOURCE_RUN: ${{ inputs.source_run }}
       RELEASE_TAG: ${{ inputs.release_tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Verify and collect native installers into the draft
         run: python3 .github/cordis/collect-desktop-release.py
