@@ -29,7 +29,7 @@ node ../Missher-DeepseekHarness-Desktop/distribution/macos/official-ui/repack-of
 
 The script runs the upstream `build:official` and packages DSH, the desktop host, vendor libraries and the system entry. It then prepares the Intel runtime, packages and signs the Electron application locally, and runs the upstream packaged-runtime check.
 
-The wrapper requires the exact upstream commit and version. It verifies the `official` client profile, title and sidebar brand registration. It also removes machine-specific build-directory prefixes from generated DevTools region comments, using [the narrowly scoped sanitizer](sanitize-runtime.mjs), then regenerates the runtime inventory through the upstream implementation before packaging and signing. Executable JavaScript and upstream source files are unchanged.
+The wrapper requires the exact upstream commit and version. It verifies the `official` client profile, title and sidebar brand registration. The [sanitizer](sanitize-runtime.mjs) removes build paths from generated DevTools comments and discards Python bytecode caches that embed those paths when the corresponding Python source is present. It regenerates the DSH runtime inventory through the upstream implementation before packaging and signing. Executable JavaScript and upstream source files are unchanged.
 
 For an already verified official-UI runtime from the same exact source version, the release repack can use:
 

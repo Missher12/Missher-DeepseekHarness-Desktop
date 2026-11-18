@@ -29,7 +29,7 @@ node ../Missher-DeepseekHarness-Desktop/distribution/macos/official-ui/repack-of
 
 脚本执行上游 `build:official`，打包 DSH、桌面宿主、第三方库和系统入口，再准备 Intel 运行库，对 Electron 应用进行本地打包和签名，最后运行上游的安装包检查。
 
-脚本要求准确的上游提交和版本，并核对 `official` 客户端选项、标题和侧栏品牌注册。它还通过[限定范围的清理脚本](sanitize-runtime.mjs)去掉生成的 DevTools 区域注释中的本机构建目录前缀，再调用上游实现重新生成运行库清单，随后打包、签名。可执行 JavaScript 和上游源码保持不变。
+脚本要求准确的上游提交和版本，并核对 `official` 客户端选项、标题和侧栏品牌注册。[清理脚本](sanitize-runtime.mjs)去掉生成的 DevTools 注释中的构建路径，并在对应 Python 源码存在时移除含有构建路径的字节码缓存。打包签名前调用上游实现重新生成 DSH 运行库清单。可执行 JavaScript 和上游源码保持不变。
 
 若已具备同一准确源码版本、经过验证的官方界面运行库，可以使用本次发布重打包入口：
 
