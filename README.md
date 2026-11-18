@@ -24,23 +24,23 @@ Choose **Intel Mac** for a Mac with an Intel processor, and **Ubuntu x64** for a
 
 | Computer / 电脑 | Download / 下载 | Requirements |
 | --- | --- | --- |
-| **Intel Mac** | [DMG 安装包](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2.20261014.1/deepseek-harness-0.2.1-alpha.2.20261014.1-mac-x64-unsigned.dmg) · [Release notes / 版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) | macOS x64; community unsigned build |
+| **Intel Mac** | [0.2.2-rc.4 ZIP](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.2-rc.4.intel.1/deepseek-harness-0.2.2-rc.4-mac-x64-official-ui-unsigned.zip) · [Release notes / 版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.2-rc.4.intel.1) | macOS 13+ x64; original upstream UI, community build |
 | **Ubuntu x64** | [DEB 安装包（推荐）](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2.20261014.1/deepseek-harness-0.2.1-alpha.2.20261014.1-linux-x64-unsigned.deb) · [Release notes / 版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) | Ubuntu 24.04 x64 |
 | **Ubuntu x64, portable** | [AppImage](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2.20261014.1/deepseek-harness-0.2.1-alpha.2.20261014.1-linux-x64-unsigned.AppImage) | Built; separate AppImage launch not qualified |
 
-Find current Desktop installers in [Releases](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases). The table above and the [seven-plugin set](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) retain historical downloads for **0.2.1-alpha.2.20261014.1**; use the independent projects in the [plugin directory](plugins/README.md) for current plugin updates.
+The Intel download is the **0.2.2-rc.4 community build with the original upstream UI**, with [build and update instructions](distribution/macos/official-ui/README.md). The Ubuntu downloads and [seven-plugin set](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) remain historical releases; use the independent projects in the [plugin directory](plugins/README.md) for plugin updates.
 
 For that historical release, the Ubuntu DEB has passed installation and desktop startup checks. The Intel Mac DMG has passed native packaging, integrity, isolated workspace and actual renderer checks. [Verification details](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) describe the exact scope; these checks do not qualify every model or plugin workflow. Desktop and plugin packages must each be installed on the target computer.
 
-Each release includes SHA-256 checksums and its validation scope. [All releases](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases) retain earlier packages. A source ZIP under **Code** is a source snapshot, not an installer. Linux x64 uses the published update feed; downloads and installation require separate user actions, with downgrades disabled. The installed DEB and a same-version update check were verified; cross-version automatic installation was not exercised. The unsigned Intel Mac package uses manual DMG installation.
+Each release includes SHA-256 checksums and its validation scope. [All releases](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases) retain earlier packages. A source ZIP under **Code** is a source snapshot, not an installer. Linux x64 uses the published update feed; downloads and installation require separate user actions, with downgrades disabled. The installed DEB and a same-version update check were verified; cross-version automatic installation was not exercised. The current Intel Mac community package uses manual ZIP installation.
 
 ### Install on Intel Mac
 
-1. Download the DMG above and open it. Drag **DeepSeek Harness.app** into **Applications**.
+1. Download and extract the ZIP above. Drag **DeepSeek Harness.app** into **Applications**.
 2. When replacing an existing copy, quit it first. Keep a backup of its data and existing application until the new version works.
 3. Open the app from Applications. If macOS blocks this unsigned community app, verify the release source and checksum, then use the system’s per-app approval in **System Settings → Privacy & Security**. Do not disable Gatekeeper globally.
 
-The community Intel build retains its separate `~/Library/Application Support/DeepSeek Harness Intel` data directory. Replacing the app does not copy or reset the plugin profile, chats or credentials.
+The 0.2.2-rc.4 package uses the upstream `~/.dsh` and `~/Library/Application Support/@deepseek-ai/dsh-desktop` locations; replacing the app does not replace plugin settings, chats or credentials. Historical community data directories are not migrated automatically; see the [version guide](distribution/macos/official-ui/README.md).
 
 ### Install on Ubuntu
 

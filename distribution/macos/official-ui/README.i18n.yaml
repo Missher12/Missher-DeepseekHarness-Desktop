@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write distribution/macos/official-ui/README.md
+/intel-mac-0-2-2-rc-4-with-the-upstream-ui:
+  en: 0189402f80c2cbcb
+  zh: 4c6c2c35c23ab488
+/intel-mac-0-2-2-rc-4-with-the-upstream-ui/download-and-install:
+  en: d8233cda98679e4f
+  zh: 24b87a5b236dd2f5
+/intel-mac-0-2-2-rc-4-with-the-upstream-ui/reproduce-the-build:
+  en: d7c01fabe64ace7e
+  zh: f6e6516d070c9563
+/intel-mac-0-2-2-rc-4-with-the-upstream-ui/protect-an-existing-installation:
+  en: 25dd593290ac40d4
+  zh: 698b0841cc1547ed
+/intel-mac-0-2-2-rc-4-with-the-upstream-ui/verification-scope:
+  en: 2609a7fbb09b994f
+  zh: 5878ad53240882f5

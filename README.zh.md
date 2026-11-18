@@ -24,23 +24,23 @@ Intel 芯片的 Mac 选择 **Intel Mac**；使用 Intel/AMD 64 位处理器的 U
 
 | 电脑 | 下载 | 适用范围 |
 | --- | --- | --- |
-| **Intel Mac** | [DMG 安装包](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2.20261014.1/deepseek-harness-0.2.1-alpha.2.20261014.1-mac-x64-unsigned.dmg) · [版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) | Intel Mac；社区未公证包 |
+| **Intel Mac** | [0.2.2-rc.4 ZIP](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.2-rc.4.intel.1/deepseek-harness-0.2.2-rc.4-mac-x64-official-ui-unsigned.zip) · [版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.2-rc.4.intel.1) | macOS 13+ Intel；官方原版界面、社区构建 |
 | **Ubuntu x64** | [DEB 安装包（推荐）](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2.20261014.1/deepseek-harness-0.2.1-alpha.2.20261014.1-linux-x64-unsigned.deb) · [版本说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1) | Ubuntu 24.04 x64 |
 | **Ubuntu x64 便携格式** | [AppImage](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/download/desktop-v0.2.1-alpha.2.20261014.1/deepseek-harness-0.2.1-alpha.2.20261014.1-linux-x64-unsigned.AppImage) | 已构建；未单独完成 AppImage 启动验收 |
 
-当前桌面安装包见 [Releases](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases)。上表和[七插件合集](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1)保留 **0.2.1-alpha.2.20261014.1** 的历史下载；当前插件更新使用[插件目录](plugins/README.zh.md)中的独立项目入口。
+Intel 下载为 **0.2.2-rc.4 官方原版界面社区包**，提供[构建与更新方法](distribution/macos/official-ui/README.zh.md)。Ubuntu 下载和[七插件合集](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1)继续保留历史版本；插件更新使用[插件目录](plugins/README.zh.md)中的独立项目入口。
 
 上述历史版本的 Ubuntu DEB 已通过安装及桌面启动检查；Intel Mac DMG 已通过原生打包、完整性、隔离工作区和实际界面检查。[验证说明](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases/tag/desktop-v0.2.1-alpha.2.20261014.1)列出准确范围，这些检查不代表每种模型或插件流程都已验收。桌面安装包和插件包需要分别安装到目标电脑。
 
-每个发布页提供 SHA-256 校验文件和验证范围，[全部发布记录](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases)保留早期安装包。GitHub 的 **Code → Download ZIP** 下载的是源码，不能代替安装包。Linux x64 使用已发布的更新源，下载和安装分别由用户触发，禁止降级；本机 DEB 安装与同版本检查已验证，跨版本自动安装尚未实测。Intel Mac 未签名版使用 DMG 手动安装。
+每个发布页提供 SHA-256 校验文件和验证范围，[全部发布记录](https://github.com/Missher12/Missher-DeepseekHarness-Desktop/releases)保留早期安装包。GitHub 的 **Code → Download ZIP** 下载的是源码，不能代替安装包。Linux x64 使用已发布的更新源，下载和安装分别由用户触发，禁止降级；本机 DEB 安装与同版本检查已验证，跨版本自动安装尚未实测。当前 Intel Mac 社区版使用 ZIP 手动安装。
 
 ### Intel Mac 安装
 
-1. 下载上面的 DMG 并打开，把 **DeepSeek Harness.app** 拖进 **Applications（应用程序）**。
+1. 下载并解压上面的 ZIP，把 **DeepSeek Harness.app** 拖进 **Applications（应用程序）**。
 2. 替换已有应用前先正常退出，保留数据和旧应用备份，确认新版正常后再处理备份。
 3. 从应用程序中打开。如果 macOS 拦截此社区未公证包，先核对来源与校验值，再在 **系统设置 → 隐私与安全性** 中对该应用单独允许打开；无需关闭系统整体安全检查。
 
-社区 Intel 版沿用独立的 `~/Library/Application Support/DeepSeek Harness Intel` 数据目录。替换应用本体不会复制或重置其中的插件配置、会话与凭据。
+0.2.2-rc.4 包使用官方 `~/.dsh` 和 `~/Library/Application Support/@deepseek-ai/dsh-desktop` 路径；替换应用本体不替换插件配置、会话或凭据。历史社区版的独立数据目录不会自动迁移，见[版本说明](distribution/macos/official-ui/README.zh.md)。
 
 ### Ubuntu 安装
 
