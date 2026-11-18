@@ -28,8 +28,8 @@ export function electronFixture(initial?: BrowserTabState, modelState?: DesktopB
     }),
   } satisfies DesktopBrowserBridge
   const workspace = vi.fn(async (_signal: AbortSignal) => 'cwd:/workspace')
-  const persist = vi.fn()
-  const openRequested = vi.fn()
+  const persist = vi.fn<(state: BrowserTabState) => void>()
+  const openRequested = vi.fn<(url: string) => void>()
   const page = createElectronPage({ initial, persist, openRequested,
     ...modelState === undefined ? {} : { automationLease: reservation.lease } }, bridge, workspace)
   const presentation = page.presentation
@@ -41,8 +41,8 @@ export function electronFixture(initial?: BrowserTabState, modelState?: DesktopB
     const state = { url: 'about:blank', title: '', loading: true, back: false, forward: false }
     const methods = {
       loadURL: vi.fn(async (_url: string) => {}), getURL: vi.fn(() => state.url), getTitle: vi.fn(() => state.title),
-      canGoBack: () => state.back, canGoForward: () => state.forward, clearHistory: vi.fn(),
-      goBack: vi.fn(), goForward: vi.fn(), reload: vi.fn(), isLoading: () => state.loading,
+      canGoBack: () => state.back, canGoForward: () => state.forward, clearHistory: vi.fn<() => void>(),
+      goBack: vi.fn<() => void>(), goForward: vi.fn<() => void>(), reload: vi.fn<() => void>(), isLoading: () => state.loading,
     }
     Object.assign(element, methods)
     const emit = (type: string, fields: object = {}): void => { element.dispatchEvent(Object.assign(new Event(type), fields)) }
