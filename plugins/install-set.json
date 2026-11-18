@@ -76,11 +76,11 @@
     {
       "id": "@missher/dsh-memory",
       "name": "Missher-DSH-Memory-Native",
-      "version": "1.6.2-native.20261118.1",
+      "version": "1.7.2-native.20261118.1",
       "repository": "https://github.com/Missher12/Missher-DSH-Memory-Native",
-      "releaseTag": "v1.6.2-native.20261118.1",
-      "release": "https://github.com/Missher12/Missher-DSH-Memory-Native/releases/tag/v1.6.2-native.20261118.1",
-      "download": "https://github.com/Missher12/Missher-DSH-Memory-Native/releases/download/v1.6.2-native.20261118.1/dsh-memory-1.6.2-native.20261118.1.tgz"
+      "releaseTag": "v1.7.2-native.20261118.1",
+      "release": "https://github.com/Missher12/Missher-DSH-Memory-Native/releases/tag/v1.7.2-native.20261118.1",
+      "download": "https://github.com/Missher12/Missher-DSH-Memory-Native/releases/download/v1.7.2-native.20261118.1/dsh-memory-1.7.2-native.20261118.1.tgz"
     },
     {
       "id": "@missher/dsh-dashboard",
@@ -103,11 +103,11 @@
     {
       "id": "dsh-windows-guard",
       "name": "Guard",
-      "version": "0.5.3",
+      "version": "0.6.0",
       "repository": "https://github.com/Missher12/Guard",
-      "releaseTag": "v0.5.3",
-      "release": "https://github.com/Missher12/Guard/releases/tag/v0.5.3",
-      "download": "https://github.com/Missher12/Guard/releases/download/v0.5.3/dsh-windows-guard-0.5.3.tgz"
+      "releaseTag": "v0.6.0",
+      "release": "https://github.com/Missher12/Guard/releases/tag/v0.6.0",
+      "download": "https://github.com/Missher12/Guard/releases/download/v0.6.0/dsh-windows-guard-0.6.0.tgz"
     }
   ]
 }
