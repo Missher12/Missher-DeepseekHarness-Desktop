@@ -22,11 +22,11 @@
     {
       "id": "@missher/dsh-session-bridge",
       "name": "Missher-DSH-Session-Bridge",
-      "version": "1.0.10",
+      "version": "1.0.11",
       "repository": "https://github.com/Missher12/Missher-DSH-Session-Bridge",
-      "releaseTag": "v1.0.10",
-      "release": "https://github.com/Missher12/Missher-DSH-Session-Bridge/releases/tag/v1.0.10",
-      "download": "https://github.com/Missher12/Missher-DSH-Session-Bridge/releases/download/v1.0.10/missher-dsh-session-bridge-1.0.10.tgz"
+      "releaseTag": "v1.0.11",
+      "release": "https://github.com/Missher12/Missher-DSH-Session-Bridge/releases/tag/v1.0.11",
+      "download": "https://github.com/Missher12/Missher-DSH-Session-Bridge/releases/download/v1.0.11/missher-dsh-session-bridge-1.0.11.tgz"
     },
     {
       "id": "@missher/dsh-superagent",
