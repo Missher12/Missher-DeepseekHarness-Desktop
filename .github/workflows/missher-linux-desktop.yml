@@ -34,7 +34,7 @@ jobs:
       DSH_GATE_CONCURRENCY: '1'
       DSH_REQUESTED_BUILD_VERSION: ${{ inputs.build_version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
         with:
           version: 11.28.5
