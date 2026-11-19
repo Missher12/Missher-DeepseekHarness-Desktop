@@ -82,7 +82,7 @@ jobs:
             exit 1
           fi
           git log -1 --oneline
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 11.28.5
       - uses: actions/setup-node@v4
