@@ -20,7 +20,7 @@
 
 ## 推荐插件，一次装齐
 
-共 **13 个独立插件**，其中 **12 个公开插件可在一个 Agent 会话中安装**。私有的 Media@Missher Ego 单独处理，记忆系统使用 Memory Native。
+共 **13 个独立插件**，其中 **12 个公开插件可在一个 Agent 会话中安装**。公开安装清单中的版本和下载已在 Intel macOS 上与官方 DSH **0.2.2-rc.5** 核对。私有的 Media@Missher Ego 单独安装，记忆系统使用 Memory Native。
 
 ```text
 读取本仓库 plugins/install-set.json，将其中全部 12 个公开插件安装或更新到我当前使用的 DSH。

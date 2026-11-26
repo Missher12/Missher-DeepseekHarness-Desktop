@@ -14,18 +14,16 @@ There are **13 independent plugins: 12 public and 1 private**. The recommended s
 
 Give an agent the main repository URL and the prompt below. The [public install manifest](install-set.json) lists published Release `.tgz` packages for all 12 public plugins. Existing plugin instances, settings and data are preserved.
 
-```text
-Read https://github.com/Missher12/Missher-DeepseekHarness-Desktop/blob/main/plugins/install-set.json.
-Install or update all 12 public plugins in my current DSH installation in this chat.
-Check each repository for newer published Releases with a matching `.tgz`; prefer a newer Host-compatible release,
-otherwise use the verified package listed. Check package identities and versions; keep Memory on its current native release line.
-Prefer the Host's native plugin manager and update existing instances while preserving settings, sessions, memory and learning data.
-Keep the same or newer installed versions without reinstalling or downgrading. Exclude private Media@Missher Ego.
-Load updates as the Host requires without force-quitting an active application.
-Report each installed version, enabled and loaded state, and any failure, missing capability or pending restart.
-```
+> Read `https://github.com/Missher12/Missher-DeepseekHarness-Desktop/blob/main/plugins/install-set.json`.
+> Install or update all 12 public plugins in my current DSH installation in this chat.
+> Check each repository for newer published Releases with a matching `.tgz`; prefer a newer Host-compatible release,
+> otherwise use the verified package listed. Check package identities and versions; keep Memory on its current native release line.
+> Prefer the Host's native plugin manager and update existing instances while preserving settings, sessions, memory and learning data.
+> Keep the same or newer installed versions without reinstalling or downgrading. Exclude private Media@Missher Ego.
+> Load updates as the Host requires without force-quitting an active application.
+> Report each installed version, enabled and loaded state, and any failure, missing capability or pending restart.
 
-The table below describes each plugin. Guard supports Windows and macOS; its runtime is skipped on Linux hosts.
+The table below describes each plugin. The install packages were checked against the official DSH 0.2.2-rc.5 on Intel macOS. Guard supports Windows and macOS; its runtime is skipped on Linux hosts.
 
 <!-- plugin-visual-guide -->
 ## Choose plugins visually
@@ -50,20 +48,20 @@ Each plugin repository includes an illustrated usage guide with steps, examples,
 
 ## Recommended plugins (12 public)
 
-| Plugin | Purpose | Repository |
-| --- | --- | --- |
-| [Memory Native](https://github.com/Missher12/Missher-DSH-Memory-Native) | Cross-session memory, search and source-linked recall | Public |
-| [Context Manager](https://github.com/Missher12/Missher-DSH-Context-Manager) | Context, usage, pre-request and idle compaction | Public |
-| [Usage Statistics](https://github.com/Missher12/Missher-DSH-Usage-Statistics) | Cross-session usage, activity and rankings | Public |
-| [Output Renderer](https://github.com/Missher12/Missher-DSH-Output-Renderer) | Reading layouts, reasoning and tool details, typography and streaming effects | Public |
-| [Session Bridge](https://github.com/Missher12/Missher-DSH-Session-Bridge) | Session IDs, cross-session messages, scratch workspaces and archived-session management | Public |
-| [Reasoning Effort](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) | Supported reasoning levels and inline model controls | Public |
-| [Project Ops](https://github.com/Missher12/Missher-DSH-Project-Ops) | Project tasks and files, artifact previews and file locations | Public |
-| [Superagent](https://github.com/Missher12/Missher-DSH-Superagent) | Dispatch project tasks, inspect progress and follow up | Public |
-| [Focus](https://github.com/Missher12/Missher-DSH-Focus) | Research, writing, data, files and app tasks, with dedicated development workflows | Public |
-| [Dashboard](https://github.com/Missher12/Missher-DSH-Dashboard) | Session status, Token trends, goals and Superagent overview | Public |
-| [MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) | Standing corrections, failure lessons and learning consolidation | Public |
-| [Guard](https://github.com/Missher12/Guard) | Windows/macOS shell checks, reliable file batches and Office document operations | Public; Windows and macOS |
+| Plugin | Purpose | Access | Release |
+| --- | --- | --- | --- |
+| [Memory Native](https://github.com/Missher12/Missher-DSH-Memory-Native) | Cross-session memory, search and source-linked recall | Public | [1.10.5-native.20261126-local.304](https://github.com/Missher12/Missher-DSH-Memory-Native/releases/tag/v1.10.5-native.20261126-local.304) |
+| [Context Manager](https://github.com/Missher12/Missher-DSH-Context-Manager) | Context, usage, pre-request and idle compaction | Public | [1.0.12](https://github.com/Missher12/Missher-DSH-Context-Manager/releases/tag/v1.0.12) |
+| [Usage Statistics](https://github.com/Missher12/Missher-DSH-Usage-Statistics) | Cross-session usage, activity and rankings | Public | [1.0.2](https://github.com/Missher12/Missher-DSH-Usage-Statistics/releases/tag/v1.0.2) |
+| [Output Renderer](https://github.com/Missher12/Missher-DSH-Output-Renderer) | Reading layouts, reasoning and tool details, typography and streaming effects | Public | [1.0.7](https://github.com/Missher12/Missher-DSH-Output-Renderer/releases/tag/v1.0.7) |
+| [Session Bridge](https://github.com/Missher12/Missher-DSH-Session-Bridge) | Session IDs, cross-session messages, scratch workspaces and archived-session management | Public | [1.0.12](https://github.com/Missher12/Missher-DSH-Session-Bridge/releases/tag/v1.0.12) |
+| [Reasoning Effort](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) | Supported reasoning levels and inline model controls | Public | [1.0.12](https://github.com/Missher12/Missher-DSH-Reasoning-Effort/releases/tag/v1.0.12) |
+| [Project Ops](https://github.com/Missher12/Missher-DSH-Project-Ops) | Project tasks and files, artifact previews and file locations | Public | [1.0.7](https://github.com/Missher12/Missher-DSH-Project-Ops/releases/tag/v1.0.7) |
+| [Superagent](https://github.com/Missher12/Missher-DSH-Superagent) | Dispatch project tasks, inspect progress and follow up | Public | [1.15.35](https://github.com/Missher12/Missher-DSH-Superagent/releases/tag/v1.15.35) |
+| [Focus](https://github.com/Missher12/Missher-DSH-Focus) | Research, writing, data, files and app tasks, with dedicated development workflows | Public | [0.6.1](https://github.com/Missher12/Missher-DSH-Focus/releases/tag/v0.6.1) |
+| [Dashboard](https://github.com/Missher12/Missher-DSH-Dashboard) | Session status, Token trends, goals and Superagent overview | Public | [0.4.5](https://github.com/Missher12/Missher-DSH-Dashboard/releases/tag/v0.4.5) |
+| [MSE Learning](https://github.com/Missher12/Missher-MSE-Learning) | Standing corrections, failure lessons and learning consolidation | Public | [1.5.0](https://github.com/Missher12/Missher-MSE-Learning/releases/tag/v1.5.0) |
+| [Guard](https://github.com/Missher12/Guard) | Windows/macOS shell checks, reliable file batches and Office document operations | Public; Windows and macOS | [0.6.1](https://github.com/Missher12/Guard/releases/tag/v0.6.1) |
 
 ## Media@Missher
 

@@ -71,7 +71,7 @@ The [plugin directory](plugins/README.md) groups everyday plugins and platform-s
 
 Plugins release and install separately. Private projects require repository access; personal settings, sessions, memory and learning data remain in their respective runtime environments.
 
-To download all plugin sources in one agent conversation, use the [12-plugin catalog](plugins/catalog.json) and [batch-download instructions](plugins/README.md#download-all-plugins-with-an-agent).
+The [source catalog](plugins/catalog.json) contains 13 plugins. To install the 12 public packages in one agent conversation, use the [install manifest](plugins/install-set.json) and [installation prompt](plugins/README.md#install-recommended-plugins). These packages were checked against official DSH 0.2.2-rc.5 on Intel macOS.
 
 ## Common questions
 

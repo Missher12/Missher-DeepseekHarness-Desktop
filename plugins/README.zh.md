@@ -14,18 +14,16 @@
 
 把主仓链接和下面这段话交给 Agent，即可在同一个会话中依次安装。使用[公开安装清单](install-set.json)中的 Release `.tgz` 包，保留现有插件实例、配置和数据。
 
-```text
-请读取 https://github.com/Missher12/Missher-DeepseekHarness-Desktop/blob/main/plugins/install-set.json，
-在我当前使用的 DSH 中，一次完成清单内全部 12 个公开插件的安装或更新。
-先查询各仓库最新已发布的 Release；有兼容新版且包含正确包名的 `.tgz` 时优先使用新版，
-否则使用清单中已核对的安装包。核对包名、版本和宿主兼容性；Memory 沿用当前原生发行系列。
-优先使用宿主原生插件管理接口，在原插件实例上更新，保留配置、会话、记忆和学习数据。
-已安装同版或更新版本的插件保留，不重复安装或降级；不要安装私有的 Media@Missher Ego。
-按宿主要求加载更新，不强退正在工作的应用。完成后逐项列出安装版本、启用及加载状态；
-缺少能力、安装失败和需要重启的项目单独说明。
-```
+> 请读取 `https://github.com/Missher12/Missher-DeepseekHarness-Desktop/blob/main/plugins/install-set.json`，
+> 在我当前使用的 DSH 中，一次完成清单内全部 12 个公开插件的安装或更新。
+> 先查询各仓库最新已发布的 Release；有兼容新版且包含正确包名的 `.tgz` 时优先使用新版，
+> 否则使用清单中已核对的安装包。核对包名、版本和宿主兼容性；Memory 沿用当前原生发行系列。
+> 优先使用宿主原生插件管理接口，在原插件实例上更新，保留配置、会话、记忆和学习数据。
+> 已安装同版或更新版本的插件保留，不重复安装或降级；不要安装私有的 Media@Missher Ego。
+> 按宿主要求加载更新，不强退正在工作的应用。完成后逐项列出安装版本、启用及加载状态；
+> 缺少能力、安装失败和需要重启的项目单独说明。
 
-可在下表先了解各插件用途。Guard 支持 Windows 与 macOS；Linux 宿主会跳过它的运行功能。
+可在下表先了解各插件用途。安装包已对照 Intel macOS 上的官方 DSH 0.2.2-rc.5 核验。Guard 支持 Windows 与 macOS；Linux 宿主会跳过它的运行功能。
 
 <!-- plugin-visual-guide -->
 ## 看图选择插件
@@ -50,20 +48,20 @@
 
 ## 推荐插件（12 个公开）
 
-| 插件 | 用途 | 仓库 |
-| --- | --- | --- |
-| [Memory Native · 记忆系统](https://github.com/Missher12/Missher-DSH-Memory-Native) | 跨会话记忆、检索和来源追溯 | 公开 |
-| [上下文管理](https://github.com/Missher12/Missher-DSH-Context-Manager) | 上下文、用量与请求前、空闲压缩 | 公开 |
-| [使用统计](https://github.com/Missher12/Missher-DSH-Usage-Statistics) | 跨会话用量、活动和排行 | 公开 |
-| [输出外观](https://github.com/Missher12/Missher-DSH-Output-Renderer) | 回答布局、思考与工具详情、字号和流式效果 | 公开 |
-| [会话桥接](https://github.com/Missher12/Missher-DSH-Session-Bridge) | 会话 ID、跨会话投递、临时工作区与归档会话管理 | 公开 |
-| [思考强度](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) | 模型支持的思考档位与行内控制 | 公开 |
-| [Project Ops · 项目工作区](https://github.com/Missher12/Missher-DSH-Project-Ops) | 项目任务与文件、产物预览和定位 | 公开 |
-| [Superagent · 项目任务](https://github.com/Missher12/Missher-DSH-Superagent) | 派出项目任务，查看进度并继续跟进 | 公开 |
-| [Focus · 执行增强](https://github.com/Missher12/Missher-DSH-Focus) | 研究、写作、数据、文件和应用任务，保留开发专用流程 | 公开 |
-| [工作仪表盘](https://github.com/Missher12/Missher-DSH-Dashboard) | 会话状态、Token 趋势、目标进度与 Superagent 概览 | 公开 |
-| [MSE · 持久学习](https://github.com/Missher12/Missher-MSE-Learning) | 长期纠错、失败经验与学习整理 | 公开 |
-| [Guard](https://github.com/Missher12/Guard) | Windows/macOS shell 检查、可靠文件批处理与办公文档操作 | 公开；Windows 和 macOS |
+| 插件 | 用途 | 访问 | 发布版本 |
+| --- | --- | --- | --- |
+| [Memory Native · 记忆系统](https://github.com/Missher12/Missher-DSH-Memory-Native) | 跨会话记忆、检索和来源追溯 | 公开 | [1.10.5-native.20261126-local.304](https://github.com/Missher12/Missher-DSH-Memory-Native/releases/tag/v1.10.5-native.20261126-local.304) |
+| [上下文管理](https://github.com/Missher12/Missher-DSH-Context-Manager) | 上下文、用量与请求前、空闲压缩 | 公开 | [1.0.12](https://github.com/Missher12/Missher-DSH-Context-Manager/releases/tag/v1.0.12) |
+| [使用统计](https://github.com/Missher12/Missher-DSH-Usage-Statistics) | 跨会话用量、活动和排行 | 公开 | [1.0.2](https://github.com/Missher12/Missher-DSH-Usage-Statistics/releases/tag/v1.0.2) |
+| [输出外观](https://github.com/Missher12/Missher-DSH-Output-Renderer) | 回答布局、思考与工具详情、字号和流式效果 | 公开 | [1.0.7](https://github.com/Missher12/Missher-DSH-Output-Renderer/releases/tag/v1.0.7) |
+| [会话桥接](https://github.com/Missher12/Missher-DSH-Session-Bridge) | 会话 ID、跨会话投递、临时工作区与归档会话管理 | 公开 | [1.0.12](https://github.com/Missher12/Missher-DSH-Session-Bridge/releases/tag/v1.0.12) |
+| [思考强度](https://github.com/Missher12/Missher-DSH-Reasoning-Effort) | 模型支持的思考档位与行内控制 | 公开 | [1.0.12](https://github.com/Missher12/Missher-DSH-Reasoning-Effort/releases/tag/v1.0.12) |
+| [Project Ops · 项目工作区](https://github.com/Missher12/Missher-DSH-Project-Ops) | 项目任务与文件、产物预览和定位 | 公开 | [1.0.7](https://github.com/Missher12/Missher-DSH-Project-Ops/releases/tag/v1.0.7) |
+| [Superagent · 项目任务](https://github.com/Missher12/Missher-DSH-Superagent) | 派出项目任务，查看进度并继续跟进 | 公开 | [1.15.35](https://github.com/Missher12/Missher-DSH-Superagent/releases/tag/v1.15.35) |
+| [Focus · 执行增强](https://github.com/Missher12/Missher-DSH-Focus) | 研究、写作、数据、文件和应用任务，保留开发专用流程 | 公开 | [0.6.1](https://github.com/Missher12/Missher-DSH-Focus/releases/tag/v0.6.1) |
+| [工作仪表盘](https://github.com/Missher12/Missher-DSH-Dashboard) | 会话状态、Token 趋势、目标进度与 Superagent 概览 | 公开 | [0.4.5](https://github.com/Missher12/Missher-DSH-Dashboard/releases/tag/v0.4.5) |
+| [MSE · 持久学习](https://github.com/Missher12/Missher-MSE-Learning) | 长期纠错、失败经验与学习整理 | 公开 | [1.5.0](https://github.com/Missher12/Missher-MSE-Learning/releases/tag/v1.5.0) |
+| [Guard](https://github.com/Missher12/Guard) | Windows/macOS shell 检查、可靠文件批处理与办公文档操作 | 公开；Windows 和 macOS | [0.6.1](https://github.com/Missher12/Guard/releases/tag/v0.6.1) |
 
 ## Media@Missher
 

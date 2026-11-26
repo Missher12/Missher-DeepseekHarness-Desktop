@@ -3,23 +3,26 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write plugins/README.md
 /dsh-plugin-directory:
-  en: df25442e6e7f9781
-  zh: 9ca2d362e43ae471
-/dsh-plugin-directory/everyday-plugins:
-  en: e64d26fd1c278951
-  zh: c65d4bd560d3ce75
+  en: e232d9a2770dcf5e
+  zh: f1723e4a257685a7
+/dsh-plugin-directory/install-the-recommended-set-in-one-agent-chat:
+  en: d17dbf8807b8383b
+  zh: 697ce0b11e5f16a8
+/dsh-plugin-directory/choose-plugins-visually:
+  en: 89685bf2116705b9
+  zh: b46c5c29e834c9d5
+/dsh-plugin-directory/recommended-plugins-12-public:
+  en: c731f25f659e7028
+  zh: ebfd9610e4ded35f
 /dsh-plugin-directory/media-missher:
   en: fc0cc99ddb14aba6
   zh: 6b2d8393a1f10292
-/dsh-plugin-directory/optional-extensions:
-  en: 96fa09c44fff59c5
-  zh: 940c31cce92325c4
 /dsh-plugin-directory/community-directory:
   en: 1b90f3ac1804a281
   zh: 4c123ee52ce8a810
 /dsh-plugin-directory/versions-and-installation:
   en: 84600dba02121229
   zh: 0a8a6be9f0327c89
-/dsh-plugin-directory/versions-and-installation/download-all-plugins-with-an-agent:
-  en: 2b0be2f9910eaf87
-  zh: cd2002771683b841
+/dsh-plugin-directory/versions-and-installation/download-source-repositories-only:
+  en: 0aec2753a9cbf2cd
+  zh: d2c1f52a47dbc5ea

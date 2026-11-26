@@ -71,7 +71,7 @@ sudo apt install ./deepseek-harness-0.2.1-alpha.2.20261014.1-linux-x64-unsigned.
 
 各插件分别发布和安装。私有项目需要仓库访问权限；个人配置、会话、记忆和学习数据继续由各自运行环境保管。
 
-需要在一个 Agent 会话中下载全部插件源码时，使用[12 个插件清单](plugins/catalog.json)和[批量下载说明](plugins/README.zh.md#download-all-plugins-with-an-agent)。
+[源码清单](plugins/catalog.json)包含 13 个插件。要在一个 Agent 会话中安装其中 12 个公开插件，使用[安装清单](plugins/install-set.json)和[安装指令](plugins/README.zh.md#install-recommended-plugins)。安装包已对照 Intel macOS 上的官方 DSH 0.2.2-rc.5 核验。
 
 ## 常见问题
 
